@@ -1,4 +1,3 @@
-import os
 import argparse
 import numpy as np
 
@@ -63,6 +62,7 @@ def get_KPoints(kspacing: float, cell):
 
 GENERAL_PARAMS = {
     'CalculateForces': 'YES',
+
     'Hamiltonian_': 'DFTB',
     'Hamiltonian_Filling_': 'Fermi',
     'Hamiltonian_Filling_Temperature': 0.0001,   # T in atomic units
@@ -82,22 +82,17 @@ GENERAL_PARAMS = {
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description='Forces calculation by DFTB for Gprep usage')
-    parser.add_argument("-i", dest="input",
-                        help="path to the file with input structures in POSCAR format")
+    parser = argparse.ArgumentParser(description='Band structure calculation by DFTB')
+    parser.add_argument("-i", dest="input", help="path to the file with input structures in POSCAR format")
     parser.add_argument("-s", dest="dir_skf", help='path to .skf files folder')
-    parser.add_argument("-o", dest="output", required=False,
-                        help=' output dir of the calculation')
+    parser.add_argument("-o", dest="output", required=False, help=' output dir of the calculation')
     args = parser.parse_args()
 
     input_traj_path = Path(args.input)
     assert input_traj_path.exists()
 
     dir_skf = Path.cwd()/args.dir_skf
-    assert dir_skf.is_dir()
-
-    # assert args.type in ['scc', 'band', 'opt'], 'Seems like you chose wrong type of the calculation'
+    assert dir_skf.is_dir(), 'Please, check carefully path to the directory with .skf files'
 
     curr_fold = Path.cwd()
     dftb_in_files = ['dftb_in.hsd', 'dftb_pin.hsd']
@@ -108,10 +103,7 @@ if __name__ == "__main__":
 
     res_fold.mkdir(parents=True, exist_ok=True)
 
-    # traj of structures
-
     atoms = read_vasp(input_traj_path)
-    # output traj with dftb forces
 
     name = input_traj_path.stem
 
@@ -130,9 +122,7 @@ if __name__ == "__main__":
     additional_params.update(get_additional_params(species, type='scf'))
     params.update(additional_params)
 
-    os.chdir(res_fold)
-    print(f'\tFolder has been changed to {res_fold}')
-
+    calc_fold = res_fold
     # path to dftb+ executable > output_file.out
     dftb_command = f'{DFTB_COMMAND} > dftb_{name}.out'  # cluster
 
@@ -142,11 +132,11 @@ if __name__ == "__main__":
         'kpts': get_KPoints(KSPACING, atoms.get_cell()),
     })
 
-    calc = Dftb(**params)
+    calc = Dftb(**params, directory=calc_fold)
 
-    atoms.write(f'a_{name}.gen')
-    write_vasp(f'a_{name}.vasp', atoms, sort=True, vasp5=True, direct=True)
-    atoms.set_calculator(calc)
+    atoms.write(calc_fold/f'a_{name}.gen')
+    write_vasp(calc_fold/f'a_{name}.vasp', atoms, sort=True, vasp5=True, direct=True)
+    atoms.calc = calc
 
     e = atoms.get_potential_energy()
     fermi_level = calc.get_fermi_level()
@@ -154,7 +144,7 @@ if __name__ == "__main__":
     print(f'\tStep 1 for {name} done')
 
     for x in dftb_in_files:
-        copy(x, f'calc_scc_{name}')
+        copy(calc_fold/x, res_fold/f'calc_scc_{name}')
 
     # Step 2.
     path = atoms.cell.bandpath()
@@ -169,20 +159,13 @@ if __name__ == "__main__":
     # Stupid ASE does not recognize k-points for band structures, when there is no 'path' key in the dict
     params.update({'kpts': {**path.todict(), 'path': ''}})
 
-    band_calc = Dftb(atoms=atoms, **params)
+    band_calc = Dftb(atoms=atoms, directory=calc_fold, **params)
     band_calc.calculate(atoms)
 
     bs = band_calc.band_structure()
-    bs.write(f'bs_{name}.json')
+    bs.write(res_fold/f'bs_{name}.json')
 
     for n in dftb_in_files:
-        copy(n, f'calc_bs_{n}')
+        copy(calc_fold/n, res_fold/f'calc_bs_{n}')
 
     print(f'\tStep 2 for {name} done')
-
-    # t_forces.write(atoms, forces=forces, energy=e)
-
-    os.chdir(curr_fold)
-    print(f'Folder has been changed back to {curr_fold}')
-    # except:
-    # print(f'name_{i} did not converge')

@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 import argparse
-import os
 import yaml
 
 from ase.atoms import Atoms

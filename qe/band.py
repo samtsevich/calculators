@@ -70,7 +70,7 @@ def get_bandpath_for_dftb(atoms, kpts, pbc=[True, True, True]):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='EOS with QE for structure')
+    parser = argparse.ArgumentParser(description='Band structure calculation with QE for structure')
     parser.add_argument('-c', dest='config', required=False,
                         help='path to the config file')
 
