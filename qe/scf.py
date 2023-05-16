@@ -18,8 +18,9 @@ from pathlib import Path
 from pprint import pprint
 from shutil import move, copy2
 
-KSPACING = 0.04
 
+KSPACING = 0.04
+CALC_FILES = ['espresso.pwi', 'espresso.pwo']
 
 # def copy_calc_files(objects:list, dest):
 #     cp_command = f"cp -r {str(origin/'tmp')} {str(origin/'espresso*')} {dest}"
@@ -57,35 +58,35 @@ if __name__ == '__main__':
         args.pseudopotentials = eval(args.pseudopotentials)
         args = vars(args)
 
-    # 1. READING INPUTS
+    #####################
+    # 1. READING INPUTS #
+    #####################
 
     # assert Path(args.pseudopotentials).exists(), 'Please check paths to PP files'
     input = Path(args['input'])
-    assert input.exists(
-    ), f'Seems like path to the input file is wrong.\n It is {input}'
-    outdir = Path(
-        args['outdir']) if args['outdir'] is not None else input.parent/f'res_{input.stem}'
+    assert input.exists(), f'Seems like path to the input file is wrong.\n It is {input}'
+    outdir = Path(args['outdir']) if args['outdir'] is not None else input.parent/f'res_{input.stem}'
     outdir.mkdir(exist_ok=True)
     options = args['options']
-    assert Path(options).exists(
-    ), f"Seems like path to the options file is wrong.\n It is {Path(args['options'])}"
+    assert Path(options).exists(), f"Seems like path to the options file is wrong.\n It is {Path(args['options'])}"
 
     pp = args['pseudopotentials']
     pp_dir = Path(args['pp_dir'])
     assert pp_dir.exists(), 'Seems like folder with pseudopotentials does not exist or wrong'
+    pp_dir = pp_dir.resolve()
 
     kspacing = args['kspacing']
 
     assert kspacing > 0, 'Seems like your value for KSPACING is not >0'
 
-    calc_fold = Path.cwd()
+    calc_fold = outdir
     # calc_fold = input.parent
 
     with open(options) as fp:
         data, card_lines = read_fortran_namelist(fp)
         if 'system' not in data:
             raise KeyError('Required section &SYSTEM not found.')
-    data['control']['outdir'] = str(outdir/'tmp')
+    data['control']['outdir'] = './tmp'
     data['control']['calculation'] = 'scf'
     data['control']['wf_collect'] = True
 
@@ -114,12 +115,13 @@ if __name__ == '__main__':
     # new_cell = atoms.get_cell() + add_cell
     # atoms.set_cell(new_cell, scale_atoms=True)
 
-    # 2. SCF
+    ##########
+    # 2. SCF #
+    ##########
 
     print(atoms.get_potential_energy())
 
-    objects_to_move = ['espresso.pwi', 'espresso.pwo']
-    move('espresso.pwi', outdir/'espresso.scf.in')
+    for x in CALC_FILES:
+        move(calc_fold/x, outdir/f'scf{Path(x).suffix}')
 
-    # copy_calc_files(objects_to_copy, outdir)
     print(f'SCF of {input} is done.')

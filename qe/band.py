@@ -18,6 +18,7 @@ from shutil import move, copy2
 
 KSPACING = 0.04
 
+CALC_FILES = ['espresso.pwi', 'espresso.pwo']
 
 def get_bandpath_for_dftb(atoms, kpts, pbc=[True, True, True]):
     """This function sets up the band path according to Setyawan-Curtarolo conventions.
@@ -83,7 +84,9 @@ if __name__ == '__main__':
                         help='whether calculation is made for the training of DFTB params from the band structure')
     args = parser.parse_args()
 
-    # 1. READING INPUTS
+    #####################
+    # 1. READING INPUTS #
+    #####################
 
     if args.config:
         assert Path(args.config).exists()
@@ -95,30 +98,26 @@ if __name__ == '__main__':
         args.pseudopotentials = eval(args.pseudopotentials)
         args = vars(args)
 
-    # 1. READING INPUTS
-
     # assert Path(args.pseudopotentials).exists(), 'Please check paths to PP files'
     input = Path(args['input'])
-    assert input.exists(
-    ), f'Seems like path to the input file is wrong.\n It is {input}'
-    outdir = Path(args['outdir']) if args['outdir'] is not None else Path.cwd(
-    )/f'res_{input.stem}'
+    assert input.exists(), f'Seems like path to the input file is wrong.\n It is {input}'
+    outdir = Path(args['outdir']) if args['outdir'] is not None else Path.cwd()/f'res_{input.stem}'
     outdir.mkdir(exist_ok=True)
     options = args['options']
-    assert Path(options).exists(
-    ), f"Seems like path to the options file is wrong.\n It is {Path(args['options'])}"
+    assert Path(options).exists(), f"Seems like path to the options file is wrong.\n It is {Path(args['options'])}"
 
     pp = args['pseudopotentials']
     pp_dir = Path(args['pp_dir'])
     assert pp_dir.exists(), 'Seems like folder with pseudopotentials does not exist or wrong'
+    pp_dir = pp_dir.resolve()
 
-    calc_fold = Path.cwd()
+    calc_fold = outdir
 
     with open(options) as fp:
         data, card_lines = read_fortran_namelist(fp)
         if 'system' not in data:
             raise KeyError('Required section &SYSTEM not found.')
-    data['control']['outdir'] = str(outdir/'tmp')
+    data['control']['outdir'] = './tmp'
     data['control']['prefix'] = input.stem
     data['calculation'] = 'scf'
 
@@ -136,17 +135,22 @@ if __name__ == '__main__':
     for s in list(set(atoms.get_chemical_symbols())):
         assert s in pp.keys(), f'{s} is not presented in the pseudopotentials'
 
-    # STEP 1. SCF
+    ##########
+    # 2. SCF #
+    ##########
     atoms.calc = calc
     e = atoms.get_potential_energy()
     fermi_level = calc.get_fermi_level()
-
     print('Step 1. SCF calculation is done')
 
-    move(calc_fold/'espresso.pwi', outdir/'scf.pwi')
-    move(calc_fold/'espresso.pwo', outdir/'scf.pwo')
+    for x in CALC_FILES:
+        move(calc_fold/x, outdir/f'scf{Path(x).suffix}')
 
-    # STEP 2. Update inputs to band structure calc
+    #####################
+    # 3. BAND STRUCTURE #
+    #####################
+
+    # Update inputs to band structure calc
     data['control'].update({'calculation': 'bands',
                             'restart_mode': 'restart',
                             'verbosity': 'high'})
@@ -166,8 +170,8 @@ if __name__ == '__main__':
     # calc.set(kpts=path, input_data=data)
     band_calc.calculate(atoms)
 
-    move(calc_fold/'espresso.pwi', outdir/'band.pwi')
-    move(calc_fold/'espresso.pwo', outdir/'band.pwo')
+    for x in CALC_FILES:
+        move(calc_fold/x, outdir/f'band{Path(x).suffix}')
 
     bs = band_calc.band_structure()
     bs.subtract_reference()

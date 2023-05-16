@@ -18,6 +18,8 @@ from pathlib import Path
 from pprint import pprint
 from shutil import move, copy2
 
+
+CALC_FILES = ['espresso.pwi', 'espresso.pwo']
 KSPACING = 0.04
 F_MAX = 0.01
 
@@ -54,7 +56,9 @@ if __name__ == '__main__':
         args.pseudopotentials = eval(args.pseudopotentials)
         args = vars(args)
 
-    ## 1. READING INPUTS 
+    #####################
+    # 1. READING INPUTS #
+    #####################
 
     # assert Path(args.pseudopotentials).exists(), 'Please check paths to PP files' 
     input = Path(args['input'])
@@ -67,6 +71,7 @@ if __name__ == '__main__':
     pp = args['pseudopotentials']
     pp_dir = Path(args['pp_dir'])
     assert pp_dir.exists(), 'Seems like folder with pseudopotentials does not exist or wrong'
+    pp_dir = pp_dir.resolve()
 
     kspacing = args['kspacing'] 
     fmax = args['fmax']
@@ -74,14 +79,14 @@ if __name__ == '__main__':
     assert kspacing > 0, 'Seems like your value for KSPACING is not >0'
     assert fmax > 0, 'Seems like your value for FMAX is not >0'
 
-    calc_fold = Path.cwd()
+    calc_fold = outdir
     # calc_fold = input.parent
 
     with open(options) as fp:
         data, card_lines = read_fortran_namelist(fp)
         if 'system' not in data:
             raise KeyError('Required section &SYSTEM not found.')
-    data['control']['outdir'] = str(outdir/'tmp')
+    data['control']['outdir'] = './tmp'
     data['control']['calculation'] = 'scf'
 
     opt_calc = Espresso(input_data=data,
@@ -118,7 +123,9 @@ if __name__ == '__main__':
     # new_cell = atoms.get_cell() + add_cell
     # atoms.set_cell(new_cell, scale_atoms=True)
 
-    # 2. OPTIMIZATION
+    ###################
+    # 2. OPTIMIZATION #
+    ###################
 
     LOGFILE = outdir/'log'
     RES_TRAJ_FILE = outdir/'res.traj'
@@ -131,10 +138,8 @@ if __name__ == '__main__':
     print(atoms.get_potential_energy())
     traj.write(atoms=atoms)
 
-    objects_to_move = ['espresso.pwi', 'espresso.pwo']
-    for file in objects_to_move:
-        move(file, outdir)
+    for x in CALC_FILES:
+        move(calc_fold/x, outdir/f'opt{Path(x).suffix}')
 
     # copy_calc_files(objects_to_copy, outdir)
     print(f'Optimization of {input} is done.')
-
