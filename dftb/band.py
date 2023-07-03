@@ -82,16 +82,20 @@ GENERAL_PARAMS = {
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Band structure calculation by DFTB')
-    parser.add_argument("-i", dest="input", help="path to the file with input structures in POSCAR format")
-    parser.add_argument("-s", dest="dir_skf", help='path to .skf files folder')
-    parser.add_argument("-o", dest="output", required=False, help=' output dir of the calculation')
+    parser = argparse.ArgumentParser(
+        description='Band structure calculation by DFTB')
+    parser.add_argument(
+        "-i", dest="input", help="path to the file with input structures in POSCAR format")
+    parser.add_argument("-s", dest="dir_skf",
+                        default=Path.cwd(), help='path to .skf files folder')
+    parser.add_argument("-o", dest="output", required=False,
+                        help=' output dir of the calculation')
     args = parser.parse_args()
 
     input_traj_path = Path(args.input)
     assert input_traj_path.exists()
 
-    dir_skf = Path.cwd()/args.dir_skf
+    dir_skf = Path(args.dir_skf)
     assert dir_skf.is_dir(), 'Please, check carefully path to the directory with .skf files'
 
     curr_fold = Path.cwd()
@@ -135,7 +139,8 @@ if __name__ == "__main__":
     calc = Dftb(**params, directory=calc_fold)
 
     atoms.write(calc_fold/f'a_{name}.gen')
-    write_vasp(calc_fold/f'a_{name}.vasp', atoms, sort=True, vasp5=True, direct=True)
+    write_vasp(calc_fold/f'a_{name}.vasp', atoms,
+               sort=True, vasp5=True, direct=True)
     atoms.calc = calc
 
     e = atoms.get_potential_energy()
@@ -163,6 +168,7 @@ if __name__ == "__main__":
     band_calc.calculate(atoms)
 
     bs = band_calc.band_structure()
+    bs = bs.subtract_reference()
     bs.write(res_fold/f'bs_{name}.json')
 
     for n in dftb_in_files:
