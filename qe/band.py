@@ -125,6 +125,7 @@ if __name__ == '__main__':
             raise KeyError('Required section &SYSTEM not found.')
     data['control']['outdir'] = './tmp'
     data['control']['prefix'] = input.stem
+    data['control']['verbosity'] = 'high'
     data['calculation'] = 'scf'
 
     calc = Espresso(input_data=data,
