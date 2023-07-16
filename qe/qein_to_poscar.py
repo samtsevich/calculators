@@ -77,9 +77,11 @@ init_file = Path(sys.argv[1])
 
 assert init_file.exists()
 
+output = f'{init_file.stem}.vasp'
 with open(init_file) as fp:
     struct = read_espresso_in(fp)
     assert len(struct)
-    write_vasp(f'{init_file}.vasp', struct, direct=True, vasp5=True)
+    write_vasp(output, struct, direct=True, vasp5=True)
+    print(f'Structure is written into {output}')
 
 print('Done')

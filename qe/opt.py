@@ -35,14 +35,22 @@ if __name__ == '__main__':
     parser.add_argument('-c', dest='config', required=False,
                         help='path to the config file')
 
-    parser.add_argument('-i', dest='input', required=False, help='path to the input trajectory file')
-    parser.add_argument('-options', dest='options', required=False, help='path to the options file')
-    parser.add_argument('-pp', dest='pseudopotentials', required=False, help='dict of pseudopotentials for ASE')
-    parser.add_argument('-pp_dir', dest='pp_dir', required=False, help='path to folder with pseudopotentials')
-    parser.add_argument('-fixed_idx', dest='fixed_idx', required=False, help='path to the file with fixed indicies')
-    parser.add_argument('-outdir', dest='outdir', default='output', required=False, help='path to the output folder')
-    parser.add_argument('-kspacing', dest='kspacing', default=0.05, required=False, help='Kspacing value')
-    parser.add_argument('-fmax', dest='fmax', default=0.01, required=False, help='fmax for relaxation')
+    parser.add_argument('-i', dest='input', required=False,
+                        help='path to the input trajectory file')
+    parser.add_argument('-options', '-k', dest='options_file', required=False,
+                        help='path to the options file')
+    parser.add_argument('-pp', dest='pseudopotentials', required=False,
+                        help='dict of pseudopotentials for ASE')
+    parser.add_argument('-pp_dir', dest='pp_dir', required=False,
+                        help='path to folder with pseudopotentials')
+    parser.add_argument('-fixed_idx', dest='fixed_idx',
+                        required=False, help='path to the file with fixed indicies')
+    parser.add_argument('-outdir', '-o', dest='outdir', default='output',
+                        required=False, help='path to the output folder')
+    parser.add_argument('-kspacing', dest='kspacing',
+                        default=0.05, required=False, help='Kspacing value')
+    parser.add_argument('-fmax', dest='fmax', default=0.01,
+                        required=False, help='fmax for relaxation')
     args = parser.parse_args()
 
     if args.config:
@@ -59,20 +67,24 @@ if __name__ == '__main__':
     # 1. READING INPUTS #
     #####################
 
-    # assert Path(args.pseudopotentials).exists(), 'Please check paths to PP files' 
+    # assert Path(args.pseudopotentials).exists(), 'Please check paths to PP files'
     input = Path(args['input'])
     assert input.exists(), f'Seems like path to the input file is wrong.\n It is {input}'
-    outdir = Path(args['outdir']) if args['outdir'] is not None else input.parent/f'res_{input.stem}'
+
+    outdir = Path(args['outdir']) if args['outdir'] is not None else Path.cwd()/f'res_{input.stem}'
     outdir.mkdir(exist_ok=True)
-    options = args['options']
-    assert Path(options).exists(), f"Seems like path to the options file is wrong.\n It is {Path(args['options'])}"
+
+    options_file = args['options_file']
+    assert Path(options_file).exists(), f"Seems like path to the options file is wrong.\n It is {options_file}"
 
     pp = args['pseudopotentials']
     pp_dir = Path(args['pp_dir'])
-    assert pp_dir.exists(), 'Seems like folder with pseudopotentials does not exist or wrong'
+    if pp_dir.is_symlink():
+        pp_dir = pp_dir.readlink()
+    assert pp_dir.is_dir(), 'Seems like folder with pseudopotentials does not exist or wrong'
     pp_dir = pp_dir.resolve()
 
-    kspacing = args['kspacing'] 
+    kspacing = args['kspacing']
     fmax = args['fmax']
 
     assert kspacing > 0, 'Seems like your value for KSPACING is not >0'
@@ -81,7 +93,7 @@ if __name__ == '__main__':
     calc_fold = outdir
     # calc_fold = input.parent
 
-    with open(options) as fp:
+    with open(options_file) as fp:
         data, card_lines = read_fortran_namelist(fp)
         if 'system' not in data:
             raise KeyError('Required section &SYSTEM not found.')
@@ -94,8 +106,7 @@ if __name__ == '__main__':
                         kspacing=KSPACING,
                         directory=str(calc_fold))
 
-
-    # Read atomic structure from the inputs 
+    # Read atomic structure from the inputs
     atoms = read_vasp(input)
     # atoms = Trajectory(filename=input)[-1]
 

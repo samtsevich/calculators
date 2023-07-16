@@ -65,14 +65,18 @@ if __name__ == '__main__':
     # assert Path(args.pseudopotentials).exists(), 'Please check paths to PP files'
     input = Path(args['input'])
     assert input.exists(), f'Seems like path to the input file is wrong.\n It is {input}'
-    outdir = Path(args['outdir']) if args['outdir'] is not None else input.parent/f'res_{input.stem}'
+
+    outdir = Path(args['outdir']) if args['outdir'] is not None else Path.cwd()/f'res_{input.stem}'
     outdir.mkdir(exist_ok=True)
+
     options = args['options']
     assert Path(options).exists(), f"Seems like path to the options file is wrong.\n It is {Path(args['options'])}"
 
     pp = args['pseudopotentials']
     pp_dir = Path(args['pp_dir'])
-    assert pp_dir.exists(), 'Seems like folder with pseudopotentials does not exist or wrong'
+    if pp_dir.is_symlink():
+        pp_dir = pp_dir.readlink()
+    assert pp_dir.is_dir(), 'Seems like folder with pseudopotentials does not exist or wrong'
     pp_dir = pp_dir.resolve()
 
     kspacing = args['kspacing']

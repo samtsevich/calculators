@@ -84,10 +84,10 @@ GENERAL_PARAMS = {
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Band structure calculation by DFTB')
-    parser.add_argument(
-        "-i", dest="input", help="path to the file with input structures in POSCAR format")
-    parser.add_argument("-s", dest="dir_skf",
-                        default=Path.cwd(), help='path to .skf files folder')
+    parser.add_argument("-i", dest="input",
+                        help="path to the file with input structures in POSCAR format")
+    parser.add_argument("-s", dest="dir_skf", default=Path.cwd(),
+                        help='path to .skf files folder')
     parser.add_argument("-o", dest="output", required=False,
                         help=' output dir of the calculation')
     args = parser.parse_args()
@@ -96,6 +96,8 @@ if __name__ == "__main__":
     assert input_traj_path.exists()
 
     dir_skf = Path(args.dir_skf)
+    if dir_skf.is_symlink():
+        dir_skf = dir_skf.readlink()
     assert dir_skf.is_dir(), 'Please, check carefully path to the directory with .skf files'
 
     curr_fold = Path.cwd()

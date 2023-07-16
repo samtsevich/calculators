@@ -95,6 +95,8 @@ if __name__ == "__main__":
     name = input_traj_path.stem
 
     dir_skf = Path(args.dir_skf)
+    if dir_skf.is_symlink():
+        dir_skf = dir_skf.readlink()
     assert dir_skf.is_dir()
 
     assert args.type in ['scc', 'band', 'opt'], 'Seems like you chose wrong type of the calculation'

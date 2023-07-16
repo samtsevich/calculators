@@ -76,10 +76,12 @@ if __name__ == '__main__':
 
     parser.add_argument('-i', dest='input',
                         help='path to the input trajectory file')
-    parser.add_argument('-k', dest='options', help='path to the options file')
+    parser.add_argument('-options', '-k', dest='options_file', help='path to the options file')
     parser.add_argument('-pp', dest='pseudopotentials',
                         help='dict of pseudopotentials for ASE')
-    parser.add_argument('-o', dest='outdir', help='path to the output folder')
+    parser.add_argument('-pp_dir', dest='pp_dir', required=False,
+                        help='path to folder with pseudopotentials')
+    parser.add_argument('-o', '-outdir', dest='outdir', help='path to the output folder')
     parser.add_argument('-train', dest='train', action='store_true',
                         help='whether calculation is made for the training of DFTB params from the band structure')
     args = parser.parse_args()
@@ -101,19 +103,23 @@ if __name__ == '__main__':
     # assert Path(args.pseudopotentials).exists(), 'Please check paths to PP files'
     input = Path(args['input'])
     assert input.exists(), f'Seems like path to the input file is wrong.\n It is {input}'
+
     outdir = Path(args['outdir']) if args['outdir'] is not None else Path.cwd()/f'res_{input.stem}'
     outdir.mkdir(exist_ok=True)
-    options = args['options']
-    assert Path(options).exists(), f"Seems like path to the options file is wrong.\n It is {Path(args['options'])}"
+
+    options_file = args['options_file']
+    assert Path(options_file).exists(), f"Seems like path to the options file is wrong.\n It is {options_file}"
 
     pp = args['pseudopotentials']
     pp_dir = Path(args['pp_dir'])
-    assert pp_dir.exists(), 'Seems like folder with pseudopotentials does not exist or wrong'
+    if pp_dir.is_symlink():
+        pp_dir = pp_dir.readlink()
+    assert pp_dir.is_dir(), 'Seems like folder with pseudopotentials does not exist or wrong'
     pp_dir = pp_dir.resolve()
 
     calc_fold = outdir
 
-    with open(options) as fp:
+    with open(options_file) as fp:
         data, card_lines = read_fortran_namelist(fp)
         if 'system' not in data:
             raise KeyError('Required section &SYSTEM not found.')
