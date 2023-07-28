@@ -1,0 +1,6 @@
+input: "./../structures/wz_ZnO.vasp"
+options: "./qe_params/qe_options"
+pp_dir: "./qe_params/"
+pseudopotentials: { "Zn": "Zn.upf", "O": "O.upf" }
+fmax: 0.0001
+outdir: "results/opt_out"

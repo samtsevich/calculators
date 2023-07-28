@@ -1,5 +1,0 @@
-input: "./wz_ZnO.vasp"
-options: "./qe_options"
-pp_dir: "./"
-pseudopotentials: { "Zn": "Zn.upf", "O": "O.upf" }
-outdir: "band_out"

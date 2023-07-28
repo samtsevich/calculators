@@ -1,0 +1,5 @@
+input: "./../structures/wz_ZnO.vasp"
+options: "./qe_params/qe_options"
+pp_dir: "./qe_params/"
+pseudopotentials: { "Zn": "Zn.upf", "O": "O.upf" }
+outdir: "results/scf_out"

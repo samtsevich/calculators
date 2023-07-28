@@ -1,24 +1,14 @@
 #!/usr/bin/python3
 
-import argparse
 import numpy as np
-import yaml
 
 from ase.atoms import Atoms
 from ase.calculators.espresso import Espresso
-from ase.io import read
-from ase.io.espresso import read_fortran_namelist
-from ase.io.trajectory import Trajectory, TrajectoryWriter
-from ase.io.vasp import read_vasp
-from ase.optimize import BFGS
-from ase.units import kJ
 
 from pathlib import Path
-from shutil import move, copy2
+from shutil import move
 
-KSPACING = 0.04
-
-CALC_FILES = ['espresso.pwi', 'espresso.pwo']
+from common_qe import get_args
 
 def get_bandpath_for_dftb(atoms, kpts, pbc=[True, True, True]):
     """This function sets up the band path according to Setyawan-Curtarolo conventions.
@@ -64,94 +54,45 @@ def get_bandpath_for_dftb(atoms, kpts, pbc=[True, True, True]):
     return {'path': path, 'kpts': output_bands}
 
 
-# def copy_calc_files(objects:list, dest):
-#     cp_command = f"cp -r {str(origin/'tmp')} {str(origin/'espresso*')} {dest}"
-#     os.system(cp_command)
-
-
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Band structure calculation with QE for structure')
-    parser.add_argument('-c', dest='config', required=False,
-                        help='path to the config file')
 
-    parser.add_argument('-i', dest='input',
-                        help='path to the input trajectory file')
-    parser.add_argument('-options', '-k', dest='options_file', help='path to the options file')
-    parser.add_argument('-pp', dest='pseudopotentials',
-                        help='dict of pseudopotentials for ASE')
-    parser.add_argument('-pp_dir', dest='pp_dir', required=False,
-                        help='path to folder with pseudopotentials')
-    parser.add_argument('-o', '-outdir', dest='outdir', help='path to the output folder')
-    parser.add_argument('-train', dest='train', action='store_true',
-                        help='whether calculation is made for the training of DFTB params from the band structure')
-    args = parser.parse_args()
+    args = get_args(calc_type='band')
 
-    #####################
-    # 1. READING INPUTS #
-    #####################
+    name = args['input'].stem
+    structure = args['structure']
 
-    if args.config:
-        assert Path(args.config).exists()
-        opt = vars(args)
-        args = yaml.load(open(args.config), Loader=yaml.FullLoader)
-        opt.update(args)
-        args = opt
-    else:
-        args.pseudopotentials = eval(args.pseudopotentials)
-        args = vars(args)
-
-    # assert Path(args.pseudopotentials).exists(), 'Please check paths to PP files'
-    input = Path(args['input'])
-    assert input.exists(), f'Seems like path to the input file is wrong.\n It is {input}'
-
-    outdir = Path(args['outdir']) if args['outdir'] is not None else Path.cwd()/f'res_{input.stem}'
-    outdir.mkdir(exist_ok=True)
-
-    options_file = args['options_file']
-    assert Path(options_file).exists(), f"Seems like path to the options file is wrong.\n It is {options_file}"
-
+    options = args['options']
     pp = args['pseudopotentials']
-    pp_dir = Path(args['pp_dir'])
-    if pp_dir.is_symlink():
-        pp_dir = pp_dir.readlink()
-    assert pp_dir.is_dir(), 'Seems like folder with pseudopotentials does not exist or wrong'
-    pp_dir = pp_dir.resolve()
+    pp_dir = args['pp_dir']
+    kspacing = args['kspacing']
 
+    outdir = Path(args['outdir'])
     calc_fold = outdir
 
-    with open(options_file) as fp:
-        data, card_lines = read_fortran_namelist(fp)
-        if 'system' not in data:
-            raise KeyError('Required section &SYSTEM not found.')
+    data = args['data']
+
+
     data['control']['outdir'] = './tmp'
-    data['control']['prefix'] = input.stem
+    data['control']['prefix'] = str(name)
     data['control']['verbosity'] = 'high'
     data['calculation'] = 'scf'
 
-    calc = Espresso(input_data=data,
-                    pseudopotentials=pp,
-                    pseudo_dir=str(pp_dir),
-                    kspacing=KSPACING,
-                    directory=str(calc_fold))
-
-    # Read atomic structure from the inputs
-    atoms = read_vasp(input)
-    # if isinstance(structures, Atoms):
-    # structures = [structures]
-
-    for s in list(set(atoms.get_chemical_symbols())):
-        assert s in pp.keys(), f'{s} is not presented in the pseudopotentials'
+    scf_calc = Espresso(input_data=data,
+                        pseudopotentials=pp,
+                        pseudo_dir=str(pp_dir),
+                        kspacing=kspacing,
+                        directory=str(calc_fold))
 
     ##########
     # 2. SCF #
     ##########
-    atoms.calc = calc
-    e = atoms.get_potential_energy()
-    fermi_level = calc.get_fermi_level()
+    structure.calc = scf_calc
+    e = structure.get_potential_energy()
+    fermi_level = scf_calc.get_fermi_level()
     print('Step 1. SCF calculation is done')
 
-    for x in CALC_FILES:
-        move(calc_fold/x, outdir/f'scf{Path(x).suffix}')
+    move(calc_fold/f'{scf_calc.prefix}.pwi', outdir/f'{name}.scf.in')
+    move(calc_fold/f'{scf_calc.prefix}.pwo', outdir/f'{name}.scf.out')
 
     #####################
     # 3. BAND STRUCTURE #
@@ -162,11 +103,11 @@ if __name__ == '__main__':
                             'restart_mode': 'restart',
                             'verbosity': 'high'})
 
-    path = atoms.cell.bandpath()
+    path = structure.cell.bandpath()
 
-    if args['train']:
+    if args['is_training']:
         path = get_bandpath_for_dftb(
-            atoms, {'path': path.path, 'npoints': 101})
+            structure, {'path': path.path, 'npoints': 101})
 
     band_calc = Espresso(input_data=data,
                          pseudopotentials=pp,
@@ -175,31 +116,14 @@ if __name__ == '__main__':
                          directory=str(calc_fold))
 
     # calc.set(kpts=path, input_data=data)
-    band_calc.calculate(atoms)
+    band_calc.calculate(structure)
 
-    for x in CALC_FILES:
-        move(calc_fold/x, outdir/f'band{Path(x).suffix}')
+    move(calc_fold/f'{scf_calc.prefix}.pwi', outdir/f'{name}.band.in')
+    move(calc_fold/f'{scf_calc.prefix}.pwo', outdir/f'{name}.band.out')
 
     bs = band_calc.band_structure()
     bs.subtract_reference()
     # bs.reference = fermi_level
-    bs.write(outdir/f'bs_{input.stem}.json')
+    bs.write(outdir/f'bs_{name}.json')
 
-    # 2. OPTIMIZATION
-
-    # LOGFILE = outdir/'log'
-    # RES_TRAJ_FILE = outdir/'res.traj'
-    #
-    # opt = BFGS(atoms, logfile=LOGFILE)
-    # traj = Trajectory(RES_TRAJ_FILE, 'w', atoms)
-    # opt.attach(traj)
-    # opt.run(fmax=0.01)
-    #
-    # print(atoms.get_potential_energy())
-    # traj.write(atoms=atoms)
-    #
-    # objects_to_move = ['espresso.pwi', 'espresso.pwo']
-    # for file in objects_to_move:
-
-    # copy_calc_files(objects_to_copy, outdir)
-    print(f'Band structure of {input} is calcultaed.')
+    print(f'Band structure of {name} is calcultaed.')
