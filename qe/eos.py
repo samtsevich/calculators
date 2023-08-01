@@ -13,13 +13,6 @@ from pathlib import Path
 from common_qe import get_args
 
 
-# def copy_calc_files(origin, dest):
-#     origin.mkdir(parents=True, exist_ok=True)
-#     dest.mkdir(exist_ok=True, parents=True)
-#     cp_command = f"cp -r {str(origin/'tmp')} {str(origin/'espresso*')} {dest}"
-#     os.system(cp_command)
-
-
 if __name__ == '__main__':
 
     args = get_args(calc_type='eos')

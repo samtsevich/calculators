@@ -58,7 +58,7 @@ if __name__ == '__main__':
 
     args = get_args(calc_type='band')
 
-    name = args['input'].stem
+    name = args['name']
     structure = args['structure']
 
     options = args['options']

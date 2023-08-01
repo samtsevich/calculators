@@ -58,7 +58,6 @@ def get_args(calc_type):
     parser.add_argument('-o',
                         '--outdir',
                         dest='outdir',
-                        default='output',
                         required=False,
                         help='path to the output folder')
     parser.add_argument('-kspacing',
@@ -90,9 +89,9 @@ def get_args(calc_type):
         args.pseudopotentials = eval(args.pseudopotentials)
         args = vars(args)
 
-
     input = Path(args['input'])
-    assert input.exists(), f'Seems like path to the input file is wrong.\n It is {input}'
+    assert input.exists(
+    ), f'Seems like path to the input file is wrong.\n It is {input}'
     args['input'] = input
     structure = read(input, format='vasp')
 
@@ -105,15 +104,16 @@ def get_args(calc_type):
             structure.set_constraint(FixAtoms(indices=idx))
     args['structure'] = structure
 
-    if args['outdir'] is None:
+    if 'outdir' not in args or args['outdir'] is None:
         outdir = Path.cwd()/f'{calc_type}_{input.stem}'
     else:
         outdir = Path(args['outdir'])
-    outdir.mkdir(exist_ok=True)
+    outdir.mkdir(parents=True, exist_ok=True)
     args['outdir'] = outdir
 
     options_file = args['options']
-    assert Path(options_file).exists(), f"Seems like path to the options file is wrong.\n It is {options_file}"
+    assert Path(options_file).exists(
+    ), f"Seems like path to the options file is wrong.\n It is {options_file}"
     # Read options from the file
     with open(options_file) as fp:
         data, _ = read_fortran_namelist(fp)
