@@ -2,7 +2,6 @@
 
 import numpy as np
 
-from ase.atoms import Atoms
 from ase.calculators.espresso import Espresso
 
 from pathlib import Path
@@ -55,6 +54,8 @@ def get_bandpath_for_dftb(atoms, kpts, pbc=[True, True, True]):
 
 
 if __name__ == '__main__':
+    # import ase
+    # assert ase.__version__ > '3.22.1'
 
     args = get_args(calc_type='band')
 
@@ -70,29 +71,30 @@ if __name__ == '__main__':
     calc_fold = outdir
 
     data = args['data']
-
-
-    data['control']['outdir'] = './tmp'
-    data['control']['prefix'] = str(name)
-    data['control']['verbosity'] = 'high'
     data['calculation'] = 'scf'
+    data['control'].update({'outdir': './tmp',
+                            'prefix': str(name),
+                            'verbosity': 'high'})
 
-    scf_calc = Espresso(input_data=data,
-                        pseudopotentials=pp,
-                        pseudo_dir=str(pp_dir),
-                        kspacing=kspacing,
-                        directory=str(calc_fold))
+    calc = Espresso(input_data=data,
+                    pseudopotentials=pp,
+                    pseudo_dir=str(pp_dir),
+                    kspacing=kspacing,
+                    directory=str(calc_fold))
 
     ##########
     # 2. SCF #
     ##########
-    structure.calc = scf_calc
+    structure.calc = calc
     e = structure.get_potential_energy()
-    fermi_level = scf_calc.get_fermi_level()
+    fermi_level = calc.get_fermi_level()
     print('Step 1. SCF calculation is done')
 
-    move(calc_fold/f'{scf_calc.prefix}.pwi', outdir/f'{name}.scf.in')
-    move(calc_fold/f'{scf_calc.prefix}.pwo', outdir/f'{name}.scf.out')
+    move(calc_fold/f'{calc.prefix}.pwi', outdir/f'{name}.scf.in')
+    move(calc_fold/f'{calc.prefix}.pwo', outdir/f'{name}.scf.out')
+
+    # move(calc_fold/calc.template.inputname, outdir/f'{name}.scf.in')
+    # move(calc_fold/calc.template.outputname, outdir/f'{name}.scf.out')
 
     #####################
     # 3. BAND STRUCTURE #
@@ -104,26 +106,30 @@ if __name__ == '__main__':
                             'verbosity': 'high'})
 
     path = structure.cell.bandpath()
+    print(f'BandPath: {path}')
 
     if args['is_training']:
         path = get_bandpath_for_dftb(
             structure, {'path': path.path, 'npoints': 101})
 
-    band_calc = Espresso(input_data=data,
-                         pseudopotentials=pp,
-                         pseudo_dir=str(pp_dir),
-                         kpts=path,
-                         directory=str(calc_fold))
-
+    calc = Espresso(input_data=data,
+                    pseudopotentials=pp,
+                    pseudo_dir=str(pp_dir),
+                    kpts=path,
+                    directory=str(calc_fold))
     # calc.set(kpts=path, input_data=data)
-    band_calc.calculate(structure)
+    calc.calculate(structure)
 
-    move(calc_fold/f'{scf_calc.prefix}.pwi', outdir/f'{name}.band.in')
-    move(calc_fold/f'{scf_calc.prefix}.pwo', outdir/f'{name}.band.out')
+    move(calc_fold/f'{calc.prefix}.pwi', outdir/f'{name}.band.in')
+    move(calc_fold/f'{calc.prefix}.pwo', outdir/f'{name}.band.out')
 
-    bs = band_calc.band_structure()
+    # move(calc_fold/calc.template.inputname, outdir/f'{name}.band.in')
+    # move(calc_fold/calc.template.outputname, outdir/f'{name}.band.out')
+
+    bs = calc.band_structure()
+    bs._reference = fermi_level
     bs.subtract_reference()
-    # bs.reference = fermi_level
     bs.write(outdir/f'bs_{name}.json')
+    bs.plot(filename=outdir/f'bs_{name}.png')
 
     print(f'Band structure of {name} is calcultaed.')

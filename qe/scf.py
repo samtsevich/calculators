@@ -10,6 +10,8 @@ from common_qe import (get_args,
 
 
 if __name__ == '__main__':
+    import ase
+    assert ase.__version__ > '3.22.1'
 
     args = get_args(calc_type='scf')
 
@@ -25,17 +27,17 @@ if __name__ == '__main__':
     calc_fold = outdir
 
     data = args['data']
-    data['control']['calculation'] = 'scf'
-    data['control']['outdir'] = './tmp'
-    data['control']['prefix'] = str(name)
-    data['control']['verbosity'] = 'high'
-    data['control']['wf_collect'] = True
+    data['control'].update({'calculation': 'scf',
+                            'outdir': './tmp',
+                            'prefix': str(name),
+                            'verbosity': 'high',
+                            'wf_collect': True})
 
     scf_calc = Espresso(input_data=data,
-                    pseudopotentials=pp,
-                    pseudo_dir=str(pp_dir),
-                    kspacing=kspacing,
-                    directory=str(calc_fold))
+                        pseudopotentials=pp,
+                        pseudo_dir=str(pp_dir),
+                        kspacing=kspacing,
+                        directory=str(calc_fold))
 
     structure.calc = scf_calc
 
@@ -55,7 +57,7 @@ if __name__ == '__main__':
 
     print(structure.get_potential_energy())
 
-    move(calc_fold/f'{scf_calc.prefix}.pwi', outdir/f'{name}.scf.in')
-    move(calc_fold/f'{scf_calc.prefix}.pwo', outdir/f'{name}.scf.out')
+    move(calc_fold/scf_calc.template.inputname, outdir/f'{name}.scf.in')
+    move(calc_fold/scf_calc.template.outputname, outdir/f'{name}.scf.out')
 
     print(f'SCF of {name} is done.')

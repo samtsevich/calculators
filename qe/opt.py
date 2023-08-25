@@ -29,8 +29,8 @@ if __name__ == '__main__':
     calc_fold = outdir
 
     data = args['data']
-    data['control']['outdir'] = './tmp'
-    data['control']['calculation'] = 'scf'
+    data['control'].update({'outdir': './tmp',
+                            'calculation': 'scf'})
 
     opt_calc = Espresso(input_data=data,
                         pseudopotentials=pp,
@@ -65,8 +65,8 @@ if __name__ == '__main__':
     print(structure.get_potential_energy())
     traj.write(atoms=structure)
 
-    move(calc_fold/f'{opt_calc.prefix}.pwi', outdir/f'{name}.opt.in')
-    move(calc_fold/f'{opt_calc.prefix}.pwo', outdir/f'{name}.opt.out')
+    move(calc_fold/opt_calc.template.inputname, outdir/f'{name}.opt.in')
+    move(calc_fold/opt_calc.template.outputname, outdir/f'{name}.opt.out')
 
     # copy_calc_files(objects_to_copy, outdir)
     print(f'Optimization of {args["input"]} is done.')

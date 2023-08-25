@@ -95,6 +95,8 @@ def get_args(calc_type):
     args['input'] = input
     structure = read(input, format='vasp')
 
+    args['name'] = input.stem
+
     # Constraints
     fixed_idx = args['fixed_idx']
     if fixed_idx is not None:

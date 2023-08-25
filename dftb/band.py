@@ -16,12 +16,13 @@ if __name__ == "__main__":
     species = set(structure.get_chemical_symbols())
 
     outdir = args['outdir']
+    outdir.mkdir(parents=True, exist_ok=True)
 
     params = args['dftb_params']
     params.update(get_additional_params(type='scf'))
     params.update({'label': f'scf_{name}',})
 
-    calc_fold = outdir/'scf'
+    calc_fold = outdir
     structure.write(calc_fold/f'a_{name}.gen')
     write_vasp(calc_fold/f'a_{name}.vasp', structure,
                sort=True, vasp5=True, direct=True)
@@ -36,7 +37,6 @@ if __name__ == "__main__":
     print(f'\tStep 1 for {name} done')
 
     # Step 2.
-    calc_fold = outdir/'band'
     path = structure.cell.bandpath()
     print(path)
     scf_calc.calculate(structure)
@@ -54,7 +54,9 @@ if __name__ == "__main__":
     band_calc.calculate(structure)
 
     bs = band_calc.band_structure()
+    bs._reference = fermi_level
     bs = bs.subtract_reference()
     bs.write(outdir/f'bs_{name}.json')
+    bs.plot(filename=outdir/f'bs_{name}.png')
 
     print(f'\tStep 2 for {name} done')
