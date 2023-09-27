@@ -7,7 +7,7 @@ Calculators for scf, optimization and band structure by DFTB and QE
 ## DFTB
 
 ```bash
-py ../../dftb/band.py -i wz_ZnO.vasp -s params
+py ../../cli.py dftb band -i wz_ZnO.vasp -s params
 ```
 
 ## QE
@@ -15,17 +15,17 @@ py ../../dftb/band.py -i wz_ZnO.vasp -s params
 ### 1. SCF
 
 ```bash
-py ../../qe/scf.py -c scf_config.yaml
+py ../../cli.py qe scf -c scf_config.yaml
 ```
 
 ### 2. Band structure
 
 ```bash
-py ../../qe/band.py -c band_config.yaml
+py ../../cli.py qe band -c band_config.yaml
 ```
 
 ### 3. Optimization
 
 ```bash
-py ../../qe/opt.py -c opt_config.yaml
+py ../../cli.py qe opt -c opt_config.yaml
 ```

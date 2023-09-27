@@ -1,16 +1,13 @@
-from pathlib import Path
-
 from ase.calculators.dftb import Dftb
 from ase.io.vasp import write_vasp
 
-from common_dftb import (get_args,
+from common.dftb import (get_args,
                          get_additional_params)
+from common import get_N_val_electrons, fix_fermi_level
 
 
-if __name__ == "__main__":
-
-    args = get_args(calc_type='band')
-
+def dftb_band(args):
+    args = get_args(args)
     name = args['name']
     structure = args['structure']
     species = set(structure.get_chemical_symbols())
@@ -54,9 +51,14 @@ if __name__ == "__main__":
     band_calc.calculate(structure)
 
     bs = band_calc.band_structure()
-    bs._reference = fermi_level
+
+    # Fix Fermi level
+    N_val_e = get_N_val_electrons(structure)
+    # bs = fix_fermi_level(bs, N_val_e)
     bs = bs.subtract_reference()
     bs.write(outdir/f'bs_{name}.json')
-    bs.plot(filename=outdir/f'bs_{name}.png')
+    emin=-20
+    emax=25
+    bs.plot(filename=outdir/f'bs_{name}.png', emin=emin, emax=emax)
 
     print(f'\tStep 2 for {name} done')

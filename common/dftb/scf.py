@@ -4,15 +4,15 @@ from ase.io.vasp import write_vasp
 
 from pathlib import Path
 
-from common_dftb import (get_args,
-                         get_additional_params)
+from common.dftb import (get_args,
+               get_additional_params)
 
+def dftb_scf(args):
 
-if __name__ == "__main__":
+    assert args.command == 'dftb', 'This function is only for DFTB'
+    calc_type = args.subcommand
 
-    calc_type = 'scf'
-    args = get_args(calc_type=calc_type)
-
+    args = get_args(args)
     name = args['name']
     structure = args['structure']
 
@@ -34,3 +34,10 @@ if __name__ == "__main__":
                sort=True, vasp5=True, direct=True)
 
     print(f'SCF of {name} is done.')
+
+
+# if __name__ == "__main__":
+
+#     calc_type = 'scf'
+#     args = get_args(calc_type=calc_type)
+#     dftb_scf(args)

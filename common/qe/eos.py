@@ -10,13 +10,11 @@ from ase.units import kJ
 
 from pathlib import Path
 
-from common_qe import get_args
+from common.qe import get_args
 
 
-if __name__ == '__main__':
-
-    args = get_args(calc_type='eos')
-
+def qe_eos(args):
+    args = get_args()
     name = args['input'].stem
     structure = args['structure']
 

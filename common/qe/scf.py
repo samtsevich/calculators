@@ -5,17 +5,13 @@ from ase.calculators.espresso import Espresso
 from pathlib import Path
 from shutil import move
 
-from common_qe import (get_args,
-                       KSPACING)
+from common.qe import get_args
 
 
-if __name__ == '__main__':
-    import ase
-    assert ase.__version__ > '3.22.1'
+def qe_scf(args):
+    args = get_args()
 
-    args = get_args(calc_type='scf')
-
-    name = args['input'].stem
+    name = args['name']
     structure = args['structure']
 
     options = args['options']
@@ -57,7 +53,10 @@ if __name__ == '__main__':
 
     print(structure.get_potential_energy())
 
-    move(calc_fold/scf_calc.template.inputname, outdir/f'{name}.scf.in')
-    move(calc_fold/scf_calc.template.outputname, outdir/f'{name}.scf.out')
+    move(calc_fold/f'{scf_calc.prefix}.pwi', outdir/f'{name}.scf.in')
+    move(calc_fold/f'{scf_calc.prefix}.pwo', outdir/f'{name}.scf.out')
+
+    # move(calc_fold/scf_calc.template.inputname, outdir/f'{name}.scf.in')
+    # move(calc_fold/scf_calc.template.outputname, outdir/f'{name}.scf.out')
 
     print(f'SCF of {name} is done.')

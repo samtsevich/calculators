@@ -7,7 +7,8 @@ from ase.calculators.espresso import Espresso
 from pathlib import Path
 from shutil import move
 
-from common_qe import get_args
+from common.qe import get_args
+
 
 def get_bandpath_for_dftb(atoms, kpts, pbc=[True, True, True]):
     """This function sets up the band path according to Setyawan-Curtarolo conventions.
@@ -53,11 +54,9 @@ def get_bandpath_for_dftb(atoms, kpts, pbc=[True, True, True]):
     return {'path': path, 'kpts': output_bands}
 
 
-if __name__ == '__main__':
-    # import ase
-    # assert ase.__version__ > '3.22.1'
-
-    args = get_args(calc_type='band')
+def qe_band(args):
+    calc_type = args.subcommand
+    args = get_args(args)
 
     name = args['name']
     structure = args['structure']
@@ -93,9 +92,6 @@ if __name__ == '__main__':
     move(calc_fold/f'{calc.prefix}.pwi', outdir/f'{name}.scf.in')
     move(calc_fold/f'{calc.prefix}.pwo', outdir/f'{name}.scf.out')
 
-    # move(calc_fold/calc.template.inputname, outdir/f'{name}.scf.in')
-    # move(calc_fold/calc.template.outputname, outdir/f'{name}.scf.out')
-
     #####################
     # 3. BAND STRUCTURE #
     #####################
@@ -105,7 +101,7 @@ if __name__ == '__main__':
                             'restart_mode': 'restart',
                             'verbosity': 'high'})
 
-    path = structure.cell.bandpath()
+    path = structure.cell.bandpath(npoints=200)
     print(f'BandPath: {path}')
 
     if args['is_training']:
@@ -123,13 +119,11 @@ if __name__ == '__main__':
     move(calc_fold/f'{calc.prefix}.pwi', outdir/f'{name}.band.in')
     move(calc_fold/f'{calc.prefix}.pwo', outdir/f'{name}.band.out')
 
-    # move(calc_fold/calc.template.inputname, outdir/f'{name}.band.in')
-    # move(calc_fold/calc.template.outputname, outdir/f'{name}.band.out')
-
     bs = calc.band_structure()
     bs._reference = fermi_level
     bs.subtract_reference()
     bs.write(outdir/f'bs_{name}.json')
     bs.plot(filename=outdir/f'bs_{name}.png')
 
-    print(f'Band structure of {name} is calcultaed.')
+    print(f'Band structure of {name} is calculated.')
+

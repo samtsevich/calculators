@@ -2,16 +2,14 @@ from ase.calculators.dftb import Dftb
 
 from ase.io.vasp import write_vasp
 
-from pathlib import Path
-
-from common_dftb import (get_args,
+from common.dftb import (get_args,
                          get_additional_params)
 
+def dftb_opt(args):
+    assert args.command == 'dftb', 'This function is only for DFTB'
+    calc_type = args.subcommand
 
-if __name__ == "__main__":
-
-    args = get_args(calc_type='opt')
-
+    args = get_args(args)
     name = args['name']
     structure = args['structure']
 
@@ -19,8 +17,8 @@ if __name__ == "__main__":
     calc_fold = outdir
 
     params = args['dftb_params']
-    params.update(get_additional_params(type='opt'))
-    params.update({'label': f'opt_{name}',})
+    params.update(get_additional_params(type=calc_type))
+    params.update({'label': f'{calc_type}_{name}',})
 
     opt_calc = Dftb(atoms=structure,
                     directory=calc_fold,
@@ -33,3 +31,8 @@ if __name__ == "__main__":
                sort=True, vasp5=True, direct=True)
 
     print('Optimization done!')
+
+
+# if __name__ == "__main__":
+#     args = get_args(calc_type='opt')
+#     dftb_opt(args)

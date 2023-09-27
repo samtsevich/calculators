@@ -8,11 +8,11 @@ from ase.optimize import BFGS
 from pathlib import Path
 from shutil import move
 
-from common_qe import get_args
+from common.qe import get_args
 
 
-if __name__ == '__main__':
-    args = get_args(calc_type='opt')
+def qe_opt(args):
+    args = get_args()
 
     # Name of the input file
     name = args['input'].stem
@@ -65,8 +65,8 @@ if __name__ == '__main__':
     print(structure.get_potential_energy())
     traj.write(atoms=structure)
 
-    move(calc_fold/opt_calc.template.inputname, outdir/f'{name}.opt.in')
-    move(calc_fold/opt_calc.template.outputname, outdir/f'{name}.opt.out')
+    move(calc_fold/f'{opt_calc.prefix}.pwi', outdir/f'{name}.scf.in')
+    move(calc_fold/f'{opt_calc.prefix}.pwo', outdir/f'{name}.scf.out')
 
     # copy_calc_files(objects_to_copy, outdir)
     print(f'Optimization of {args["input"]} is done.')

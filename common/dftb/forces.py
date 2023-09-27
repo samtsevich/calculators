@@ -8,15 +8,13 @@ from pathlib import Path
 import argparse
 import numpy as np
 
-from common_dftb import (get_args,
-                         get_additional_params)
+from common.dftb import (get_args,
+               get_additional_params)
 
 KSPACING = 0.02
 
+def dftb_forces(args):
 
-if __name__ == "__main__":
-
-    args = get_args(calc_type='forces')
 
     name = args['name']
     outdir = args['outdir']
@@ -44,3 +42,8 @@ if __name__ == "__main__":
         out_traj_forces.write(atoms, forces=forces, energy=e)
         # except:
         #     print(f'name_{i} did not converge')
+
+
+if __name__ == "__main__":
+    args = get_args(calc_type='forces')
+    dftb_forces(args)

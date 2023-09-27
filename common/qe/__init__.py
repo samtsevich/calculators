@@ -1,17 +1,16 @@
-import argparse
 import yaml
 
 from ase.constraints import FixAtoms
 from ase.io import read
 from ase.io.espresso import read_fortran_namelist
-
 from pathlib import Path
+
 
 KSPACING = 0.04
 F_MAX = 0.01
 
 
-def get_args(calc_type):
+def add_qe_arguments(parser, calc_type):
     """Construct argumentparser with subcommands and sections"""
     if calc_type == 'opt':
         description = 'ASE optimization with QE'
@@ -24,7 +23,7 @@ def get_args(calc_type):
     else:
         raise ValueError(f'Unknown type {calc_type}')
 
-    parser = argparse.ArgumentParser(description=description)
+    parser.description = description
 
     # Arguments common to all actions
     parser.add_argument('-c',
@@ -41,7 +40,7 @@ def get_args(calc_type):
     parser.add_argument('--fixed_idx',
                         dest='fixed_idx',
                         required=False,
-                        help='path to the file with fixed indicies')
+                        help='path to the file with fixed indices')
     parser.add_argument('-k',
                         '--options',
                         dest='options_file',
@@ -77,7 +76,11 @@ def get_args(calc_type):
                             dest='is_training',
                             action='store_true',
                             help='whether calculation is made for the training of DFTB params from the band structure')
-    args = parser.parse_args()
+    return parser
+
+
+def get_args(args):
+    calc_type = args.subcommand
 
     if args.config:
         assert Path(args.config).exists()
