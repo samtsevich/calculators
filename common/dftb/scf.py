@@ -14,26 +14,28 @@ def dftb_scf(args):
 
     args = get_args(args)
     name = args['name']
-    structure = args['structure']
+    structures = args['structures']
 
     outdir = args['outdir']
     calc_fold = outdir
 
     params = args['dftb_params']
     params.update(get_additional_params(type=calc_type))
-    params.update({'label': f'scf_{name}',})
 
-    scf_calc = Dftb(atoms=structure,
-                    directory=calc_fold,
+    scf_calc = Dftb(directory=calc_fold,
                     **params)
 
-    structure.write(outdir/f'a_{name}.gen')
-    structure.set_calculator(scf_calc)
-    structure.get_potential_energy()
-    write_vasp(outdir/f'final_{name}.vasp', structure,
-               sort=True, vasp5=True, direct=True)
+    for i, structure in enumerate(structures):
+        ID = f'{name}_{i}'
 
-    print(f'SCF of {name} is done.')
+        scf_calc.label= f'scf_{ID}'
+
+        structure.write(outdir/f'a_{ID}.gen')
+        structure.set_calculator(scf_calc)
+        structure.get_potential_energy()
+        write_vasp(outdir/f'final_{ID}.vasp', structure,
+                   sort=True, vasp5=True, direct=True)
+        print(f'SCF of {ID} is done.')
 
 
 # if __name__ == "__main__":

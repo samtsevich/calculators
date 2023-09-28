@@ -59,7 +59,7 @@ def add_qe_arguments(parser, calc_type):
                         dest='outdir',
                         required=False,
                         help='path to the output folder')
-    parser.add_argument('-kspacing',
+    parser.add_argument('--kspacing',
                         dest='kspacing',
                         default=KSPACING,
                         required=False,
@@ -93,21 +93,21 @@ def get_args(args):
         args = vars(args)
 
     input = Path(args['input'])
-    assert input.exists(
-    ), f'Seems like path to the input file is wrong.\n It is {input}'
+    assert input.exists(),\
+        f'Seems like path to the input file is wrong.\n It is {input}'
     args['input'] = input
-    structure = read(input, format='vasp')
-
+    structures = read(input, index=':')
     args['name'] = input.stem
 
+    # TODO check whether it is still actual
     # Constraints
-    fixed_idx = args['fixed_idx']
-    if fixed_idx is not None:
-        with open(fixed_idx) as fp:
-            idx = list(map(int, fp.read().split()))
-            assert len(idx), 'Seems something wrong with idx of fixed atoms'
-            structure.set_constraint(FixAtoms(indices=idx))
-    args['structure'] = structure
+    # fixed_idx = args['fixed_idx']
+    # if fixed_idx is not None:
+    #     with open(fixed_idx) as fp:
+    #         idx = list(map(int, fp.read().split()))
+    #         assert len(idx), 'Seems something wrong with idx of fixed atoms'
+    #         structure.set_constraint(FixAtoms(indices=idx))
+    args['structures'] = structures
 
     if 'outdir' not in args or args['outdir'] is None:
         outdir = Path.cwd()/f'{calc_type}_{input.stem}'
@@ -117,8 +117,8 @@ def get_args(args):
     args['outdir'] = outdir
 
     options_file = args['options']
-    assert Path(options_file).exists(
-    ), f"Seems like path to the options file is wrong.\n It is {options_file}"
+    assert Path(options_file).exists(),\
+        f"Seems like path to the options file is wrong.\n It is {options_file}"
     # Read options from the file
     with open(options_file) as fp:
         data, _ = read_fortran_namelist(fp)
@@ -127,13 +127,18 @@ def get_args(args):
     args['data'] = data
 
     pp = args['pseudopotentials']
-    for s in list(set(args['structure'].get_chemical_symbols())):
+    all_elements = set()
+    for struc in structures:
+        all_elements.update(struc.get_chemical_symbols())
+
+    for s in all_elements:
         assert s in pp.keys(), f'{s} is not presented in the pseudopotentials'
 
     pp_dir = Path(args['pp_dir'])
     if pp_dir.is_symlink():
         pp_dir = pp_dir.readlink()
-    assert pp_dir.is_dir(), 'Seems like folder with pseudopotentials does not exist or wrong'
+    assert pp_dir.is_dir(),\
+        'Seems like folder with pseudopotentials does not exist or wrong'
     pp_dir = pp_dir.resolve()
     args['pp_dir'] = pp_dir
 

@@ -12,7 +12,7 @@ def qe_scf(args):
     args = get_args()
 
     name = args['name']
-    structure = args['structure']
+    structures = args['structures']
 
     options = args['options']
     pp = args['pseudopotentials']
@@ -35,28 +35,29 @@ def qe_scf(args):
                         kspacing=kspacing,
                         directory=str(calc_fold))
 
-    structure.calc = scf_calc
+    for i, structure in enumerate(structures):
+        ID = f'{name}_{i}'
 
-    # add rattling to the atomic positions
-    # add_coords = 0.05 - 0.1 * np.random.rand(len(atoms), 3)
-    # new_coords = atoms.get_scaled_positions() + add_coords
-    # atoms.set_scaled_positions(new_coords)
+        structure.calc = scf_calc
 
-    # add rattling to the cell
-    # add_cell = 0.1 * np.random.rand(3,3)
-    # new_cell = atoms.get_cell() + add_cell
-    # atoms.set_cell(new_cell, scale_atoms=True)
+        # add rattling to the atomic positions
+        # add_coords = 0.05 - 0.1 * np.random.rand(len(atoms), 3)
+        # new_coords = atoms.get_scaled_positions() + add_coords
+        # atoms.set_scaled_positions(new_coords)
 
-    ##########
-    # 2. SCF #
-    ##########
+        # add rattling to the cell
+        # add_cell = 0.1 * np.random.rand(3,3)
+        # new_cell = atoms.get_cell() + add_cell
+        # atoms.set_cell(new_cell, scale_atoms=True)
 
-    print(structure.get_potential_energy())
+        # 2. SCF #
 
-    move(calc_fold/f'{scf_calc.prefix}.pwi', outdir/f'{name}.scf.in')
-    move(calc_fold/f'{scf_calc.prefix}.pwo', outdir/f'{name}.scf.out')
+        print(structure.get_potential_energy())
 
-    # move(calc_fold/scf_calc.template.inputname, outdir/f'{name}.scf.in')
-    # move(calc_fold/scf_calc.template.outputname, outdir/f'{name}.scf.out')
+        move(calc_fold/f'{scf_calc.prefix}.pwi', outdir/f'{ID}.scf.in')
+        move(calc_fold/f'{scf_calc.prefix}.pwo', outdir/f'{ID}.scf.out')
 
-    print(f'SCF of {name} is done.')
+        # move(calc_fold/scf_calc.template.inputname, outdir/f'{name}.scf.in')
+        # move(calc_fold/scf_calc.template.outputname, outdir/f'{name}.scf.out')
+
+        print(f'SCF of {ID} is done.')

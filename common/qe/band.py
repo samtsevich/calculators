@@ -59,7 +59,7 @@ def qe_band(args):
     args = get_args(args)
 
     name = args['name']
-    structure = args['structure']
+    structures = args['structures']
 
     options = args['options']
     pp = args['pseudopotentials']
@@ -81,49 +81,48 @@ def qe_band(args):
                     kspacing=kspacing,
                     directory=str(calc_fold))
 
-    ##########
-    # 2. SCF #
-    ##########
-    structure.calc = calc
-    e = structure.get_potential_energy()
-    fermi_level = calc.get_fermi_level()
-    print('Step 1. SCF calculation is done')
+    for i, structure in enumerate(structures):
+        ID = f'{name}_{i}'
 
-    move(calc_fold/f'{calc.prefix}.pwi', outdir/f'{name}.scf.in')
-    move(calc_fold/f'{calc.prefix}.pwo', outdir/f'{name}.scf.out')
+        # SCF #
+        structure.calc = calc
+        e = structure.get_potential_energy()
+        fermi_level = calc.get_fermi_level()
+        print('Step 1. SCF calculation is done')
 
-    #####################
-    # 3. BAND STRUCTURE #
-    #####################
+        move(calc_fold/f'{calc.prefix}.pwi', outdir/f'{ID}.scf.in')
+        move(calc_fold/f'{calc.prefix}.pwo', outdir/f'{ID}.scf.out')
 
-    # Update inputs to band structure calc
-    data['control'].update({'calculation': 'bands',
-                            'restart_mode': 'restart',
-                            'verbosity': 'high'})
+        # BAND STRUCTURE #
 
-    path = structure.cell.bandpath(npoints=200)
-    print(f'BandPath: {path}')
+        # Update inputs to band structure calc
+        data['control'].update({'calculation': 'bands',
+                                'restart_mode': 'restart',
+                                'verbosity': 'high'})
 
-    if args['is_training']:
-        path = get_bandpath_for_dftb(
-            structure, {'path': path.path, 'npoints': 101})
+        path = structure.cell.bandpath(npoints=200)
+        print(f'BandPath: {path}')
 
-    calc = Espresso(input_data=data,
-                    pseudopotentials=pp,
-                    pseudo_dir=str(pp_dir),
-                    kpts=path,
-                    directory=str(calc_fold))
-    # calc.set(kpts=path, input_data=data)
-    calc.calculate(structure)
+        if args['is_training']:
+            path = get_bandpath_for_dftb(
+                structure, {'path': path.path, 'npoints': 101})
 
-    move(calc_fold/f'{calc.prefix}.pwi', outdir/f'{name}.band.in')
-    move(calc_fold/f'{calc.prefix}.pwo', outdir/f'{name}.band.out')
+        calc = Espresso(input_data=data,
+                        pseudopotentials=pp,
+                        pseudo_dir=str(pp_dir),
+                        kpts=path,
+                        directory=str(calc_fold))
+        # calc.set(kpts=path, input_data=data)
+        calc.calculate(structure)
 
-    bs = calc.band_structure()
-    bs._reference = fermi_level
-    bs.subtract_reference()
-    bs.write(outdir/f'bs_{name}.json')
-    bs.plot(filename=outdir/f'bs_{name}.png')
+        move(calc_fold/f'{calc.prefix}.pwi', outdir/f'{ID}.band.in')
+        move(calc_fold/f'{calc.prefix}.pwo', outdir/f'{ID}.band.out')
 
-    print(f'Band structure of {name} is calculated.')
+        bs = calc.band_structure()
+        bs._reference = fermi_level
+        bs.subtract_reference()
+        bs.write(outdir/f'bs_{ID}.json')
+        bs.plot(filename=outdir/f'bs_{ID}.png')
+
+        print(f'Band structure of {ID} is calculated.')
 

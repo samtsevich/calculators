@@ -26,18 +26,22 @@ def add_dftb_arguments(parser, calc_type):
     parser.add_argument("-i",
                         "--input",
                         dest="input",
-                        required=False,
                         help="path to the POSCAR-like file with input structure")
-    parser.add_argument("-t",
-                        "--traj",
-                        dest="trajectory",
-                        required=False,
-                        help="path to the `.traj`-file with input structures")
+    # parser.add_argument("-t",
+    #                     "--traj",
+    #                     dest="trajectory",
+    #                     required=False,
+    #                     help="path to the `.traj`-file with input structures")
     parser.add_argument("-s",
                         "--skf",
                         dest="dir_skf",
                         default=Path.cwd(),
                         help='path to the folder with `.skf` files')
+    parser.add_argument('--kspacing',
+                        dest='kspacing',
+                        default=KSPACING,
+                        required=False,
+                        help='Kspacing value')
     parser.add_argument("-o",
                         "--outdir",
                         dest="outdir",
@@ -53,13 +57,8 @@ def get_args(args) -> dict:
     if 'input' in args.keys() and args['input'] is not None:
         input_path = Path(args['input'])
         assert input_path.exists()
-        args['structure'] = read(input_path, format='vasp')
+        args['structures'] = read(input_path, index=':')
         name = input_path.stem
-    elif 'trajectory' in args.keys() and args['trajectory'] is not None:
-        traj_path = Path(args['trajectory'])
-        assert traj_path.exists()
-        args['trajectory'] = TrajectoryReader(traj_path)
-        name = traj_path.stem
     else:
         raise ValueError('Please, specify input file or trajectory')
 
@@ -103,7 +102,6 @@ def get_args(args) -> dict:
     params.update({
         'label': f'{name}',
         'command': dftb_command,
-        'kpts': get_KPoints(KSPACING, args['structure'].get_cell()),
     })
 
     args['dftb_params'] = params

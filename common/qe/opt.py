@@ -15,9 +15,8 @@ def qe_opt(args):
     args = get_args()
 
     # Name of the input file
-    name = args['input'].stem
-
-    structure = args['structure']
+    name = args['name']
+    structures = args['structures']
 
     options = args['options']
     pp = args['pseudopotentials']
@@ -38,35 +37,36 @@ def qe_opt(args):
                         kspacing=kspacing,
                         directory=str(calc_fold))
 
-    structure.calc = opt_calc
+    for i, structure in enumerate(structures):
+        ID = f'{name}_{i}'
 
-    # add rattling to the atomic positions
-    # add_coords = 0.05 - 0.1 * np.random.rand(len(atoms), 3)
-    # new_coords = atoms.get_scaled_positions() + add_coords
-    # atoms.set_scaled_positions(new_coords)
+        structure.calc = opt_calc
 
-    # add rattling to the cell
-    # add_cell = 0.1 * np.random.rand(3,3)
-    # new_cell = atoms.get_cell() + add_cell
-    # atoms.set_cell(new_cell, scale_atoms=True)
+        # add rattling to the atomic positions
+        # add_coords = 0.05 - 0.1 * np.random.rand(len(atoms), 3)
+        # new_coords = atoms.get_scaled_positions() + add_coords
+        # atoms.set_scaled_positions(new_coords)
 
-    ###################
-    # 2. OPTIMIZATION #
-    ###################
+        # add rattling to the cell
+        # add_cell = 0.1 * np.random.rand(3,3)
+        # new_cell = atoms.get_cell() + add_cell
+        # atoms.set_cell(new_cell, scale_atoms=True)
 
-    LOGFILE = outdir/'log'
-    RES_TRAJ_FILE = outdir/'res.traj'
+        # OPTIMIZATION #
 
-    opt = BFGS(structure, logfile=LOGFILE)
-    traj = Trajectory(RES_TRAJ_FILE, 'w', structure)
-    opt.attach(traj)
-    opt.run(fmax=fmax)
+        LOGFILE = outdir/f'{ID}.log'
+        RES_TRAJ_FILE = outdir/'res_{ID}.traj'
 
-    print(structure.get_potential_energy())
-    traj.write(atoms=structure)
+        opt = BFGS(structure, logfile=LOGFILE)
+        traj = Trajectory(RES_TRAJ_FILE, 'w', structure)
+        opt.attach(traj)
+        opt.run(fmax=fmax)
 
-    move(calc_fold/f'{opt_calc.prefix}.pwi', outdir/f'{name}.scf.in')
-    move(calc_fold/f'{opt_calc.prefix}.pwo', outdir/f'{name}.scf.out')
+        print(structure.get_potential_energy())
+        traj.write(atoms=structure)
 
-    # copy_calc_files(objects_to_copy, outdir)
-    print(f'Optimization of {args["input"]} is done.')
+        move(calc_fold/f'{opt_calc.prefix}.pwi', outdir/f'{ID}.scf.in')
+        move(calc_fold/f'{opt_calc.prefix}.pwo', outdir/f'{ID}.scf.out')
+
+        # copy_calc_files(objects_to_copy, outdir)
+        print(f'Optimization of {ID} is done.')
