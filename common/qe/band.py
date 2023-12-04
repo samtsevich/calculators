@@ -3,11 +3,32 @@
 import numpy as np
 
 from ase.calculators.espresso import Espresso
+from ase.calculators.vasp import Vasp
+from ase.io.espresso import (get_atomic_species,
+                             get_valence_electrons,
+                             label_to_symbol,
+                             read_fortran_namelist)
+
+
+
 
 from pathlib import Path
 from shutil import move
 
+from common import fix_fermi_level
 from common.qe import get_args
+
+def read_valences(filename):
+    # Stolen from ASE
+    with open(filename, 'r') as fileobj:
+        data, card_lines = read_fortran_namelist(fileobj)
+        species_card = get_atomic_species(card_lines, n_species=data['system']['ntyp'])
+        valences = {}
+        for label, weight, pseudo in species_card:
+            symbol = label_to_symbol(label)
+            valence = get_valence_electrons(symbol, data, pseudo)
+            valences[symbol] = valence
+        return valences
 
 
 def get_bandpath_for_dftb(atoms, kpts, pbc=[True, True, True]):
@@ -55,6 +76,7 @@ def get_bandpath_for_dftb(atoms, kpts, pbc=[True, True, True]):
 
 
 def qe_band(args):
+    print('---------------------------')
     calc_type = args.subcommand
     args = get_args(args)
 
@@ -90,6 +112,10 @@ def qe_band(args):
         fermi_level = calc.get_fermi_level()
         print('Step 1. SCF calculation is done')
 
+        valences = read_valences(calc_fold/f'{calc.prefix}.pwi')
+        N_val_e = sum([valences[symbol] for symbol in structure.get_chemical_symbols()])
+        print(f'Total N valence electrons: {N_val_e}')
+
         move(calc_fold/f'{calc.prefix}.pwi', outdir/f'{ID}.scf.in')
         move(calc_fold/f'{calc.prefix}.pwo', outdir/f'{ID}.scf.out')
 
@@ -119,10 +145,9 @@ def qe_band(args):
         move(calc_fold/f'{calc.prefix}.pwo', outdir/f'{ID}.band.out')
 
         bs = calc.band_structure()
-        bs._reference = fermi_level
-        bs.subtract_reference()
+        bs = fix_fermi_level(bs, N_val_e).subtract_reference()
         bs.write(outdir/f'bs_{ID}.json')
         bs.plot(filename=outdir/f'bs_{ID}.png')
 
         print(f'Band structure of {ID} is calculated.')
-
+        print('---------------------------')

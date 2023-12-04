@@ -1,6 +1,6 @@
 from ase.calculators.dftb import Dftb
-
 from ase.io.vasp import write_vasp
+from ase.io.trajectory import Trajectory
 
 from pathlib import Path
 
@@ -25,6 +25,8 @@ def dftb_scf(args):
     scf_calc = Dftb(directory=calc_fold,
                     **params)
 
+    traj = Trajectory(outdir/f'traj_{name}.traj', 'w')
+
     for i, structure in enumerate(structures):
         ID = f'{name}_{i}'
 
@@ -32,11 +34,12 @@ def dftb_scf(args):
 
         structure.write(outdir/f'a_{ID}.gen')
         structure.set_calculator(scf_calc)
-        structure.get_potential_energy()
+        e = structure.get_potential_energy()
         write_vasp(outdir/f'final_{ID}.vasp', structure,
                    sort=True, vasp5=True, direct=True)
+        traj.write(structure)
         print(f'SCF of {ID} is done.')
-
+    traj.close()
 
 # if __name__ == "__main__":
 

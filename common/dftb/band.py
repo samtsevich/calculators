@@ -7,7 +7,6 @@ from common.dftb import (get_args,
                          get_KPoints,)
 from common import get_N_val_electrons, fix_fermi_level
 
-
 def dftb_band(args):
     args = get_args(args)
     name = args['name']
@@ -43,7 +42,7 @@ def dftb_band(args):
         print(f'\tStep 1 for {ID} done')
 
         # Step 2.
-        path = structure.cell.bandpath()
+        path = structure.cell.bandpath(npoints=100)
         print(path)
         scf_calc.calculate(structure)
         params.update(get_additional_params(type='band'))
