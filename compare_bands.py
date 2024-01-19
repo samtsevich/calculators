@@ -22,6 +22,8 @@ if __name__ == '__main__':
                         metavar=('emin', 'emax'),
                         help='Default: "-3.0 3.0" '
                         '(in eV relative to Fermi level).')
+    parser.add_argument('-e', '--eref', nargs=1, type=float, default=None)
+
     args = parser.parse_args()
 
     # set of band structures
@@ -31,6 +33,10 @@ if __name__ == '__main__':
         bss.append(read_band_structure(input_file))
 
     bs1, bs2 = bss
+
+    if args.eref is not None:
+        bs2._reference = args.eref[0]
+
     bs1 = bs1.subtract_reference()
     bs2 = bs2.subtract_reference()
 
