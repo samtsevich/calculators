@@ -1,4 +1,5 @@
 import numpy as np
+import os
 
 from ase.io import read
 from ase.io.trajectory import TrajectoryReader
@@ -37,6 +38,12 @@ def add_dftb_arguments(parser, calc_type):
                         dest="dir_skf",
                         default=Path.cwd(),
                         help='path to the folder with `.skf` files')
+    # parser.add_argument('--no-rep',
+    #                     dest='no_repulsion',
+    #                     type=bool,
+    #                     default=False,
+    #                     required=False,
+    #                     help='Whether we are taking into account repulsion or not.')
     parser.add_argument('--kspacing',
                         dest='kspacing',
                         default=KSPACING,
@@ -97,7 +104,10 @@ def get_args(args) -> dict:
     params.update(additional_params)
 
     # path to dftb+ executable > output_file.out
-    dftb_command = f'{DFTB_COMMAND} > dftb_{name}.out'  # cluster
+    try:
+        dftb_command = os.environ['DFTB_COMMAND']
+    except KeyError:
+        dftb_command = DFTB_COMMAND
 
     params.update({
         'label': f'{name}',
@@ -117,20 +127,19 @@ def get_additional_params(type: str = 'opt'):
     params = {}
 
     if type == 'scf':
-        params.update({'Hamiltonian_MaxSCCIterations': 100,
+        params.update({'Hamiltonian_MaxSCCIterations': 500,
                        'Hamiltonian_ReadInitialCharges': 'No',  # Static calculation
-                       'Hamiltonian_SCC': 'YES',
+                       'Analysis_': '',
+                       'Analysis_CalculateForces': 'Yes'
                        })
     elif type == 'band':
         params.update({'Hamiltonian_ReadInitialCharges': 'Yes',
-                       'Hamiltonian_SCC': 'No',
                        })
     elif type == 'opt':
         params.update({'Driver_': 'LBFGS',
                        'Driver_MaxForceComponent': 1e-4,
                        'Driver_MaxSteps': 1000,
                        'Hamiltonian_MaxSCCIterations': 100,
-                       'Hamiltonian_SCC': 'YES',
                        })
     else:
         raise ValueError('type must be band or static or opt_geometry')
@@ -153,8 +162,8 @@ def get_KPoints(kspacing: float, cell):
 
 
 GENERAL_PARAMS = {
-    'CalculateForces': 'YES',
     'Hamiltonian_': 'DFTB',
+    'Hamiltonian_SCC': 'Yes',
     'Hamiltonian_Filling_': 'Fermi',
     'Hamiltonian_Filling_Temperature': 0.0001,  # T in atomic units
     'Hamiltonian_ForceEvaluation': 'dynamics',
@@ -163,9 +172,9 @@ GENERAL_PARAMS = {
     'Hamiltonian_Mixer_': 'Broyden',
     'Hamiltonian_Mixer_MixingParameter': 0.1,
     # 'Hamiltonian_Dispersion' : 'LennardJones{Parameters = UFFParameters{}}',	## no dispersion
-    'Hamiltonian_PolynomialRepulsive': 'SetForAll {YES}',
+    # TODO check what to do with this repulsion
+    # 'Hamiltonian_PolynomialRepulsive': 'SetForAll {YES}',
     'Hamiltonian_SCCTolerance': 1.0E-8,
-
     'Options_': '',
     'Options_WriteResultsTag': 'Yes',        # Default:No
     'Options_WriteDetailedOut': 'Yes'

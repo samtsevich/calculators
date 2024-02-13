@@ -13,7 +13,7 @@ def fix_fermi_level(band_structure: BandStructure, N_val_e: int) -> BandStructur
     homo_e = band_structure.energies[0, :, ceil(N_val_e/2) - 1]
 
     bandgap = max([min(lumo_e) - max(homo_e), 0.0])
-    # print(f'bandgap = {bandgap}')
-    if bandgap > 0.0: # insulator or semi-conductor
-        band_structure._reference = max(homo_e)
+    print(f'bandgap = {bandgap}')
+    # if bandgap > 0.0: # insulator or semi-conductor
+    band_structure._reference = max(homo_e)
     return band_structure
