@@ -1,8 +1,11 @@
 import yaml
 
-from ase.constraints import FixAtoms
 from ase.io import read
-from ase.io.espresso import read_fortran_namelist
+from ase.io.espresso import (get_atomic_species,
+                             get_valence_electrons,
+                             label_to_symbol,
+                             read_fortran_namelist,
+                             )
 from pathlib import Path
 
 
@@ -147,3 +150,19 @@ def get_args(args):
         assert args['fmax'] > 0, 'Seems like your value for FMAX is not >0'
 
     return args
+
+
+###################################################
+# Recently deleted functions from ase.io.espresso #
+
+def read_valences(qe_input_file):
+    # Stolen from ASE
+    with open(qe_input_file, 'r') as fileobj:
+        data, card_lines = read_fortran_namelist(fileobj)
+        species_card = get_atomic_species(card_lines, n_species=data['system']['ntyp'])
+        valences = {}
+        for label, weight, pseudo in species_card:
+            symbol = label_to_symbol(label)
+            valence = get_valence_electrons(symbol, data, pseudo)
+            valences[symbol] = valence
+        return valences

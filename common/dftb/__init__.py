@@ -49,6 +49,11 @@ def add_dftb_arguments(parser, calc_type):
                         default=KSPACING,
                         required=False,
                         help='Kspacing value')
+    parser.add_argument("--pol_rep",
+                        dest="polynomial_repulsion",
+                        required=False,
+                        default=True,
+                        help='Whether use polynomial repulsion or splines inside SKF files. Default: True')
     parser.add_argument("-o",
                         "--outdir",
                         dest="outdir",
@@ -127,14 +132,14 @@ def get_additional_params(type: str = 'opt'):
     params = {}
 
     if type == 'scf':
-        params.update({'Hamiltonian_MaxSCCIterations': 500,
-                       'Hamiltonian_ReadInitialCharges': 'No',  # Static calculation
-                       'Analysis_': '',
-                       'Analysis_CalculateForces': 'Yes'
-                       })
+        params.update({ 'Hamiltonian_MaxSCCIterations': 500,
+                        'Hamiltonian_ReadInitialCharges': 'No',  # Static calculation
+                        'Analysis_': '',
+                        'Analysis_CalculateForces': 'Yes',})
     elif type == 'band':
-        params.update({'Hamiltonian_ReadInitialCharges': 'Yes',
-                       })
+        params.update({ 'Hamiltonian_ReadInitialCharges': 'Yes',
+                        'Hamiltonian_MaxSCCIterations': 1,
+                        'Hamiltonian_SCCTolerance': 1e6,})
     elif type == 'opt':
         params.update({'Driver_': 'LBFGS',
                        'Driver_MaxForceComponent': 1e-4,
@@ -172,8 +177,6 @@ GENERAL_PARAMS = {
     'Hamiltonian_Mixer_': 'Broyden',
     'Hamiltonian_Mixer_MixingParameter': 0.1,
     # 'Hamiltonian_Dispersion' : 'LennardJones{Parameters = UFFParameters{}}',	## no dispersion
-    # TODO check what to do with this repulsion
-    # 'Hamiltonian_PolynomialRepulsive': 'SetForAll {YES}',
     'Hamiltonian_SCCTolerance': 1.0E-8,
     'Options_': '',
     'Options_WriteResultsTag': 'Yes',        # Default:No

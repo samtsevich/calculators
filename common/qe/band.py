@@ -3,32 +3,13 @@
 import numpy as np
 
 from ase.calculators.espresso import Espresso
-from ase.calculators.vasp import Vasp
-from ase.io.espresso import (get_atomic_species,
-                             get_valence_electrons,
-                             label_to_symbol,
-                             read_fortran_namelist)
-
-
 
 
 from pathlib import Path
 from shutil import move
 
 from common import fix_fermi_level
-from common.qe import get_args
-
-def read_valences(filename):
-    # Stolen from ASE
-    with open(filename, 'r') as fileobj:
-        data, card_lines = read_fortran_namelist(fileobj)
-        species_card = get_atomic_species(card_lines, n_species=data['system']['ntyp'])
-        valences = {}
-        for label, weight, pseudo in species_card:
-            symbol = label_to_symbol(label)
-            valence = get_valence_electrons(symbol, data, pseudo)
-            valences[symbol] = valence
-        return valences
+from common.qe import get_args, read_valences
 
 
 def get_bandpath_for_dftb(atoms, kpts, pbc=[True, True, True]):

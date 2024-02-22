@@ -12,6 +12,8 @@ def dftb_band(args):
     name = args['name']
     structures = args['structures']
 
+    polynomial_rep = args['polynomial_repulsion']
+
     outdir = args['outdir']
     outdir.mkdir(parents=True, exist_ok=True)
 
@@ -24,6 +26,9 @@ def dftb_band(args):
         params.update(get_additional_params(type='scf'))
         params.update({'label': f'scf_{ID}',
                        'kpts': kpts,})
+
+        if polynomial_rep:
+            params.update({'Hamiltonian_PolynomialRepulsive': 'SetForAll {YES}',})
 
         calc_fold = outdir
 
@@ -48,7 +53,8 @@ def dftb_band(args):
         params.update(get_additional_params(type='band'))
         params.update({'label': f'band_{ID}',})
 
-        assert params['Hamiltonian_SCC'] == 'No'
+        assert params['Hamiltonian_SCC'] == 'Yes'
+        assert params['Hamiltonian_MaxSCCIterations'] == 1
 
         # Stupid ASE does not recognize k-points for band structures, when there is no 'path' key in the dict
         params.update({'kpts': {**path.todict(), 'path': ''}})

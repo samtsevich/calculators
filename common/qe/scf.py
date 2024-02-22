@@ -9,7 +9,7 @@ from common.qe import get_args
 
 
 def qe_scf(args):
-    args = get_args()
+    args = get_args(args)
 
     name = args['name']
     structures = args['structures']
