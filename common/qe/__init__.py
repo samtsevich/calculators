@@ -119,8 +119,8 @@ def get_args(args):
     outdir.mkdir(parents=True, exist_ok=True)
     args['outdir'] = outdir
 
-    options_file = args['options']
-    assert Path(options_file).exists(),\
+    options_file = Path(args['options'])
+    assert options_file.exists(),\
         f"Seems like path to the options file is wrong.\n It is {options_file}"
     # Read options from the file
     with open(options_file) as fp:
