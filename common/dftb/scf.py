@@ -2,8 +2,6 @@ from ase.calculators.dftb import Dftb
 from ase.io.vasp import write_vasp
 from ase.io.trajectory import Trajectory
 
-from pathlib import Path
-
 from common.dftb import (get_args,
                get_additional_params, get_KPoints)
 
@@ -32,7 +30,7 @@ def dftb_scf(args):
         ID = f'{name}_{i}'
 
         kpts = get_KPoints(args['kspacing'], structure.get_cell())
-        params.update({'label': f'scf_{ID}',
+        params.update({'label': f'{calc_type}_{ID}',
                        'kpts': kpts,})
 
         scf_calc = Dftb(directory=calc_fold,

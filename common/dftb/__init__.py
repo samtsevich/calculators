@@ -102,10 +102,10 @@ def get_args(args) -> dict:
         # 'Hamiltonian_MaxAngularMomentum_Li': 's',
     }
 
-    if calc_type == 'scf':
+    if calc_type == 'scf' or calc_type == 'opt':
         additional_params.update(get_additional_params(type='scf'))
-    elif calc_type == 'opt':
-        additional_params.update(get_additional_params(type='opt'))
+    # elif :
+    #     additional_params.update(get_additional_params(type='opt'))
     params.update(additional_params)
 
     # path to dftb+ executable > output_file.out
@@ -144,7 +144,7 @@ def get_additional_params(type: str = 'opt'):
         params.update({'Driver_': 'LBFGS',
                        'Driver_MaxForceComponent': 1e-4,
                        'Driver_MaxSteps': 1000,
-                       'Hamiltonian_MaxSCCIterations': 100,
+                       'Hamiltonian_MaxSCCIterations': 300,
                        })
     else:
         raise ValueError('type must be band or static or opt_geometry')
