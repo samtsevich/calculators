@@ -44,8 +44,9 @@ def dftb_opt(args):
 
         opt = BFGS(structure,
                    alpha=10.,
-                   trajectory=str(outdir/f'{ID}.traj'),
-                   logfile=str(outdir/f'{ID}.log'))
+                   restart=str(outdir/'optimization.pckl'),
+                   trajectory=str(outdir/'optimization.traj'),
+                   logfile=str(outdir/'optimization.log'))
         opt.run(fmax=F_MAX, steps=N_STEPS)
 
         # e = structure.get_potential_energy()
