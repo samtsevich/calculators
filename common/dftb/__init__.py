@@ -6,7 +6,7 @@ from ase.io.trajectory import TrajectoryReader
 from pathlib import Path
 
 
-DFTB_COMMAND = 'dftb+'
+DFTB_COMMAND = 'dftb+ > output'
 DFTB_IN_FILES = ['dftb_in.hsd', 'dftb_pin.hsd']
 KSPACING = 0.02
 
@@ -18,8 +18,8 @@ def add_dftb_arguments(parser, calc_type):
         description = 'ASE single point calculation with DFTB'
     elif calc_type == 'band':
         description = 'ASE band structure calculation with DFTB'
-    elif calc_type == 'forces':
-        description = 'ASE forces calculation with DFTB'
+    elif calc_type == 'neb':
+        description = 'ASE NEB calculation with DFTB'
     else:
         raise ValueError(f'Unknown type {calc_type}')
 
