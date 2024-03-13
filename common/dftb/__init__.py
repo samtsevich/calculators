@@ -102,6 +102,10 @@ def get_args(args) -> dict:
         # 'Hamiltonian_MaxAngularMomentum_Li': 's',
     }
 
+    polynomial_rep = args['polynomial_repulsion']
+    if polynomial_rep:
+        params.update({'Hamiltonian_PolynomialRepulsive': 'SetForAll {YES}',})
+
     if calc_type == 'scf' or calc_type == 'opt':
         additional_params.update(get_additional_params(type='scf'))
     # elif :

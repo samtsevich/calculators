@@ -12,8 +12,6 @@ def dftb_band(args):
     name = args['name']
     structures = args['structures']
 
-    polynomial_rep = args['polynomial_repulsion']
-
     outdir = args['outdir']
     outdir.mkdir(parents=True, exist_ok=True)
 
@@ -26,9 +24,6 @@ def dftb_band(args):
         params.update(get_additional_params(type='scf'))
         params.update({'label': f'scf_{ID}',
                        'kpts': kpts,})
-
-        if polynomial_rep:
-            params.update({'Hamiltonian_PolynomialRepulsive': 'SetForAll {YES}',})
 
         calc_fold = outdir
 
