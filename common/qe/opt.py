@@ -2,7 +2,7 @@
 
 from ase.atoms import Atoms
 from ase.calculators.espresso import Espresso
-from ase.io.trajectory import Trajectory
+from ase.io.vasp import write_vasp
 from ase.optimize import BFGS
 
 from pathlib import Path
@@ -10,9 +10,12 @@ from shutil import move
 
 from common.qe import get_args
 
+F_MAX = 0.01
+N_STEPS = 1000
+
 
 def qe_opt(args):
-    args = get_args()
+    args = get_args(args)
 
     # Name of the input file
     name = args['name']
@@ -54,19 +57,18 @@ def qe_opt(args):
 
         # OPTIMIZATION #
 
-        LOGFILE = outdir/f'{ID}.log'
-        RES_TRAJ_FILE = outdir/'res_{ID}.traj'
-
-        opt = BFGS(structure, logfile=LOGFILE)
-        traj = Trajectory(RES_TRAJ_FILE, 'w', structure)
-        opt.attach(traj)
-        opt.run(fmax=fmax)
+        opt = BFGS(structure,
+                   restart=str(outdir/f'{ID}.pckl'),
+                   trajectory=str(outdir/f'res_{ID}.traj'),
+                   logfile=str(outdir/f'{ID}.log'))
+        opt.run(fmax=F_MAX, steps=N_STEPS)
 
         print(structure.get_potential_energy())
-        traj.write(atoms=structure)
+        write_vasp( outdir/f'final_{ID}.vasp', structure,
+                    sort=True, vasp5=True, direct=True)
 
-        move(calc_fold/f'{opt_calc.prefix}.pwi', outdir/f'{ID}.scf.in')
-        move(calc_fold/f'{opt_calc.prefix}.pwo', outdir/f'{ID}.scf.out')
+        # move(calc_fold/f'{opt_calc.prefix}.pwi', outdir/f'{ID}.scf.in')
+        # move(calc_fold/f'{opt_calc.prefix}.pwo', outdir/f'{ID}.scf.out')
 
         # copy_calc_files(objects_to_copy, outdir)
         print(f'Optimization of {ID} is done.')
