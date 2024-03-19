@@ -52,7 +52,7 @@ def add_dftb_arguments(parser, calc_type):
     parser.add_argument("--pol_rep",
                         dest="polynomial_repulsion",
                         required=False,
-                        default=True,
+                        default=False,
                         help='Whether use polynomial repulsion or splines inside SKF files. Default: True')
     parser.add_argument("-o",
                         "--outdir",
@@ -102,8 +102,7 @@ def get_args(args) -> dict:
         # 'Hamiltonian_MaxAngularMomentum_Li': 's',
     }
 
-    polynomial_rep = args['polynomial_repulsion']
-    if polynomial_rep:
+    if args['polynomial_repulsion']:
         params.update({'Hamiltonian_PolynomialRepulsive': 'SetForAll {YES}',})
 
     if calc_type == 'scf' or calc_type == 'opt':

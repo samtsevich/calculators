@@ -44,6 +44,7 @@ def qe_scf(args):
                             kspacing=kspacing,
                             directory=str(calc_fold))
 
+        structure.set_constraint()
         structure.set_calculator(scf_calc)
 
         # add rattling to the atomic positions
