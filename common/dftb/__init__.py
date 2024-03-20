@@ -6,9 +6,9 @@ from ase.io.trajectory import TrajectoryReader
 from pathlib import Path
 
 
-DFTB_COMMAND = 'dftb+ > output'
+N_PROCESS = 4
 DFTB_IN_FILES = ['dftb_in.hsd', 'dftb_pin.hsd']
-KSPACING = 0.02
+KSPACING = 0.1
 
 
 def add_dftb_arguments(parser, calc_type):
@@ -44,6 +44,11 @@ def add_dftb_arguments(parser, calc_type):
     #                     default=False,
     #                     required=False,
     #                     help='Whether we are taking into account repulsion or not.')
+    parser.add_argument('-np',
+                        dest='nproc',
+                        default=N_PROCESS,
+                        required=False,
+                        help='Number of processors')
     parser.add_argument('--kspacing',
                         dest='kspacing',
                         default=KSPACING,
@@ -51,7 +56,7 @@ def add_dftb_arguments(parser, calc_type):
                         help='Kspacing value')
     parser.add_argument("--pol_rep",
                         dest="polynomial_repulsion",
-                        required=False,
+                        action="store_true",
                         default=False,
                         help='Whether use polynomial repulsion or splines inside SKF files. Default: True')
     parser.add_argument("-o",
@@ -84,6 +89,8 @@ def get_args(args) -> dict:
     assert dir_skf.is_dir(), 'Please, check carefully path to the directory with .skf files'
     args['dir_skf'] = dir_skf
 
+    nproc = args['nproc']
+
     if args['outdir'] is None:
         outdir = Path.cwd()/f'{calc_type}_{name}'
     else:
@@ -100,6 +107,9 @@ def get_args(args) -> dict:
         # 'run_manyDftb_steps': False,
         # 'Hamiltonian_MaxAngularMomentum_C': 'p',
         # 'Hamiltonian_MaxAngularMomentum_Li': 's',
+        # TODO
+        # 'Parallel_': '',
+        # 'Parallel_Groups': nproc,
     }
 
     if args['polynomial_repulsion']:
@@ -112,14 +122,14 @@ def get_args(args) -> dict:
     params.update(additional_params)
 
     # path to dftb+ executable > output_file.out
-    try:
-        dftb_command = os.environ['DFTB_COMMAND']
-    except KeyError:
-        dftb_command = DFTB_COMMAND
+    # if 'DFTB_COMMAND' in os.environ:
+    #     DFTB_COMMAND = os.environ['DFTB_COMMAND']
+
+    DFTB_COMMAND = f'mpiexec -np {nproc} dftb+ > output'
 
     params.update({
         'label': f'{name}',
-        'command': dftb_command,
+        'command': DFTB_COMMAND,
     })
 
     args['dftb_params'] = params
@@ -180,7 +190,9 @@ GENERAL_PARAMS = {
     'Hamiltonian_Mixer_': 'Broyden',
     'Hamiltonian_Mixer_MixingParameter': 0.1,
     # 'Hamiltonian_Dispersion' : 'LennardJones{Parameters = UFFParameters{}}',	## no dispersion
-    'Hamiltonian_SCCTolerance': 1.0E-8,
+    # TODO
+    # 'Hamiltonian_SCCTolerance': 1.0E-8,
+    'Hamiltonian_SCCTolerance': 1.0E-5,
     'Options_': '',
     'Options_WriteResultsTag': 'Yes',        # Default:No
     'Options_WriteDetailedOut': 'Yes'
