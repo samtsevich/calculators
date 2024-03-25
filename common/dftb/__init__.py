@@ -54,7 +54,7 @@ def add_dftb_arguments(parser, calc_type):
                         default=KSPACING,
                         required=False,
                         help='Kspacing value')
-    parser.add_argument("--pol_rep",
+    parser.add_argument("--pol-rep",
                         dest="polynomial_repulsion",
                         action="store_true",
                         default=False,
@@ -122,10 +122,10 @@ def get_args(args) -> dict:
     params.update(additional_params)
 
     # path to dftb+ executable > output_file.out
-    # if 'DFTB_COMMAND' in os.environ:
-    #     DFTB_COMMAND = os.environ['DFTB_COMMAND']
-
-    DFTB_COMMAND = f'mpiexec -np {nproc} dftb+ > output'
+    if 'DFTB_COMMAND' in os.environ:
+        DFTB_COMMAND = os.environ['DFTB_COMMAND']
+    else:
+        DFTB_COMMAND = f'mpiexec -np {nproc} dftb+ > output'
 
     params.update({
         'label': f'{name}',
