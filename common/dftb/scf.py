@@ -24,7 +24,7 @@ def dftb_scf(args):
 
 
     # ? add 'stress'
-    traj = Trajectory(outdir/f'traj_{name}.traj', 'w', properties=['energy', 'forces'])
+    traj = Trajectory(outdir/'out.traj', 'w', properties=['energy', 'forces'])
 
     for i, structure in enumerate(structures):
         ID = f'{name}_{i}'
@@ -42,7 +42,7 @@ def dftb_scf(args):
         write_vasp(outdir/f'final_{ID}.vasp', structure,
                    sort=True, vasp5=True, direct=True)
         # print(structure.get_forces())
-        traj.write(structure)
+        traj.write(structure, energy=e, forces=structure.get_forces())
         print(f'SCF of {ID} is done.')
     traj.close()
 

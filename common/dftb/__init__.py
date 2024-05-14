@@ -58,7 +58,7 @@ def add_dftb_arguments(parser, calc_type):
                         dest="polynomial_repulsion",
                         action="store_true",
                         default=False,
-                        help='Whether use polynomial repulsion or splines inside SKF files. Default: True')
+                        help='Whether use polynomial repulsion or splines inside SKF files. Default: False')
     parser.add_argument("-o",
                         "--outdir",
                         dest="outdir",
@@ -73,7 +73,7 @@ def get_args(args) -> dict:
 
     if 'input' in args.keys() and args['input'] is not None:
         input_path = Path(args['input'])
-        assert input_path.exists()
+        assert input_path.exists(), f'File {input_path} does not exist'
         args['structures'] = read(input_path, index=':')
         name = input_path.stem
     else:
