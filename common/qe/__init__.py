@@ -71,6 +71,7 @@ def add_qe_arguments(parser, calc_type):
         parser.add_argument('-f',
                             '--fmax',
                             dest='fmax',
+                            type=float,
                             default=F_MAX,
                             required=False,
                             help='fmax for relaxation')
