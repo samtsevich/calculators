@@ -1,11 +1,12 @@
-from ase.calculators.dftb import Dftb
-from ase.io.vasp import write_vasp
 from copy import copy
 
-from common.dftb import (get_args,
-                         get_additional_params,
-                         get_KPoints,)
-from common import get_N_val_electrons, fix_fermi_level
+from ase.calculators.dftb import Dftb
+from ase.io.vasp import write_vasp
+from ase.spectrum.band_structure import get_band_structure
+
+from common import fix_fermi_level, get_N_val_electrons
+from common.dftb import get_additional_params, get_args, get_KPoints
+
 
 def dftb_band(args):
     args = get_args(args)
@@ -44,7 +45,6 @@ def dftb_band(args):
         # Step 2.
         path = structure.cell.bandpath(npoints=100)
         print(path)
-        scf_calc.calculate(structure)
         params.update(get_additional_params(type='band'))
         params.update({'label': f'band_{ID}',})
 
@@ -54,12 +54,9 @@ def dftb_band(args):
         # Stupid ASE does not recognize k-points for band structures, when there is no 'path' key in the dict
         params.update({'kpts': {**path.todict(), 'path': ''}})
 
-        band_calc = Dftb(atoms=structure,
-                        directory=calc_fold,
-                        **params)
+        band_calc = Dftb(atoms=structure, directory=calc_fold, **params)
         band_calc.calculate(structure)
-
-        bs = band_calc.band_structure()
+        bs = get_band_structure(atoms=structure, calc=band_calc)
 
         # Fix Fermi level
         N_val_e = get_N_val_electrons(structure)

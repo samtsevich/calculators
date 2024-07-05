@@ -1,12 +1,12 @@
 #!/usr/bin/python3
 
-import numpy as np
-
-from ase.calculators.espresso import Espresso
-
-
 from pathlib import Path
 from shutil import move
+
+import numpy as np
+from ase.calculators.calculator import Calculator
+from ase.calculators.espresso import Espresso
+from ase.spectrum.band_structure import get_band_structure
 
 from common import fix_fermi_level
 from common.qe import get_args, read_valences
@@ -78,11 +78,11 @@ def qe_band(args):
                             'prefix': str(name),
                             'verbosity': 'high'})
 
-    calc = Espresso(input_data=data,
-                    pseudopotentials=pp,
-                    pseudo_dir=str(pp_dir),
-                    kspacing=kspacing,
-                    directory=str(calc_fold))
+    calc: Calculator = Espresso(input_data=data,
+                                pseudopotentials=pp,
+                                pseudo_dir=str(pp_dir),
+                                kspacing=kspacing,
+                                directory=str(calc_fold))
 
     for i, structure in enumerate(structures):
         ID = f'{name}_{i}'
@@ -114,18 +114,20 @@ def qe_band(args):
             path = get_bandpath_for_dftb(
                 structure, {'path': path.path, 'npoints': 101})
 
-        calc = Espresso(input_data=data,
-                        pseudopotentials=pp,
-                        pseudo_dir=str(pp_dir),
-                        kpts=path,
-                        directory=str(calc_fold))
+        calc: Calculator = Espresso(input_data=data,
+                                    pseudopotentials=pp,
+                                    pseudo_dir=str(pp_dir),
+                                    kpts=path,
+                                    directory=str(calc_fold))
         # calc.set(kpts=path, input_data=data)
-        calc.calculate(structure)
+        # calc.calculate(atoms=structure)
+        structure.calc = calc
+        structure.get_potential_energy()
 
         move(calc_fold/calc.template.inputname, outdir/f'{ID}.band.in')
         move(calc_fold/calc.template.outputname, outdir/f'{ID}.band.out')
 
-        bs = calc.band_structure()
+        bs = get_band_structure(atoms=structure, calc=calc)
         bs = fix_fermi_level(bs, N_val_e).subtract_reference()
         bs.write(outdir/f'bs_{ID}.json')
         bs.plot(filename=outdir/f'bs_{ID}.png')
