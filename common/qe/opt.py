@@ -1,12 +1,12 @@
 #!/usr/bin/python3
 
+from pathlib import Path
+from shutil import move
+
 from ase.atoms import Atoms
 from ase.calculators.espresso import Espresso
 from ase.io.vasp import write_vasp
 from ase.optimize import BFGS
-
-from pathlib import Path
-from shutil import move
 
 from common.qe import get_args
 
@@ -67,8 +67,8 @@ def qe_opt(args):
         write_vasp( outdir/f'final_{ID}.vasp', structure,
                     sort=True, vasp5=True, direct=True)
 
-        # move(calc_fold/f'{opt_calc.prefix}.pwi', outdir/f'{ID}.scf.in')
-        # move(calc_fold/f'{opt_calc.prefix}.pwo', outdir/f'{ID}.scf.out')
+        # move(calc_fold/opt_calc.template.inputname, outdir/f'{ID}.scf.in')
+        # move(calc_fold/opt_calc.template.outputname, outdir/f'{ID}.scf.out')
 
         # copy_calc_files(objects_to_copy, outdir)
         print(f'Optimization of {ID} is done.')

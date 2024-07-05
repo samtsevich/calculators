@@ -1,11 +1,11 @@
 #!/usr/bin/python3
 
+from pathlib import Path
+from shutil import move
+
 from ase.calculators.espresso import Espresso
 from ase.io.trajectory import Trajectory
 from ase.io.vasp import write_vasp
-
-from pathlib import Path
-from shutil import move
 
 from common.qe import get_args
 
@@ -62,11 +62,8 @@ def qe_scf(args):
         write_vasp(outdir/f'final_{ID}.vasp', structure,
                    sort=True, vasp5=True, direct=True)
 
-        move(calc_fold/f'{scf_calc.prefix}.pwi', outdir/f'{ID}.scf.in')
-        move(calc_fold/f'{scf_calc.prefix}.pwo', outdir/f'{ID}.scf.out')
-
-        # move(calc_fold/scf_calc.template.inputname, outdir/f'{name}.scf.in')
-        # move(calc_fold/scf_calc.template.outputname, outdir/f'{name}.scf.out')
+        move(calc_fold/scf_calc.template.inputname, outdir/f'{ID}.scf.in')
+        move(calc_fold/scf_calc.template.outputname, outdir/f'{ID}.scf.out')
 
         traj.write(structure)
 

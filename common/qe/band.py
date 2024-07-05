@@ -93,12 +93,12 @@ def qe_band(args):
         fermi_level = calc.get_fermi_level()
         print('Step 1. SCF calculation is done')
 
-        valences = read_valences(calc_fold/f'{calc.prefix}.pwi')
+        valences = read_valences(calc_fold / calc.template.outputname)
         N_val_e = sum([valences[symbol] for symbol in structure.get_chemical_symbols()])
         print(f'Total N valence electrons: {N_val_e}')
 
-        move(calc_fold/f'{calc.prefix}.pwi', outdir/f'{ID}.scf.in')
-        move(calc_fold/f'{calc.prefix}.pwo', outdir/f'{ID}.scf.out')
+        move(calc_fold/calc.template.inputname, outdir/f'{ID}.scf.in')
+        move(calc_fold/calc.template.outputname, outdir/f'{ID}.scf.out')
 
         # BAND STRUCTURE #
 
@@ -122,8 +122,8 @@ def qe_band(args):
         # calc.set(kpts=path, input_data=data)
         calc.calculate(structure)
 
-        move(calc_fold/f'{calc.prefix}.pwi', outdir/f'{ID}.band.in')
-        move(calc_fold/f'{calc.prefix}.pwo', outdir/f'{ID}.band.out')
+        move(calc_fold/calc.template.inputname, outdir/f'{ID}.band.in')
+        move(calc_fold/calc.template.outputname, outdir/f'{ID}.band.out')
 
         bs = calc.band_structure()
         bs = fix_fermi_level(bs, N_val_e).subtract_reference()

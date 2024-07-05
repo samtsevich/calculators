@@ -1,16 +1,17 @@
 import argparse
 
-from common.dftb import add_dftb_arguments
-from common.dftb.opt import dftb_opt
-from common.dftb.neb import dftb_neb
-from common.dftb.band import dftb_band
-from common.dftb.scf import dftb_scf
+import ase
 
+from common.dftb import add_dftb_arguments
+from common.dftb.band import dftb_band
+from common.dftb.neb import dftb_neb
+from common.dftb.opt import dftb_opt
+from common.dftb.scf import dftb_scf
 from common.qe import add_qe_arguments
-from common.qe.scf import qe_scf
-from common.qe.opt import qe_opt
 from common.qe.band import qe_band
 from common.qe.eos import qe_eos
+from common.qe.opt import qe_opt
+from common.qe.scf import qe_scf
 
 # from common.vasp import add_vasp_arguments
 # from common.vasp.scf import vasp_scf
@@ -56,4 +57,8 @@ def main():
 
 
 if __name__ == "__main__":
+    # pre-check for ASE version
+    if ase.__version__ < '3.23.0':
+        raise ValueError('ASE version must be at least 3.23.0')
+
     main()

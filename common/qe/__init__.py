@@ -1,13 +1,10 @@
-import yaml
-
-from ase.io import read
-from ase.io.espresso import (get_atomic_species,
-                             get_valence_electrons,
-                             label_to_symbol,
-                             read_fortran_namelist,
-                             )
 from pathlib import Path
+from typing import Dict
 
+import yaml
+from ase.data import chemical_symbols
+from ase.io import read
+from ase.io.espresso import read_fortran_namelist
 
 KSPACING = 0.04
 F_MAX = 0.01
@@ -153,17 +150,23 @@ def get_args(args):
     return args
 
 
-###################################################
-# Recently deleted functions from ase.io.espresso #
-
-def read_valences(qe_input_file):
-    # Stolen from ASE
-    with open(qe_input_file, 'r') as fileobj:
-        data, card_lines = read_fortran_namelist(fileobj)
-        species_card = get_atomic_species(card_lines, n_species=data['system']['ntyp'])
-        valences = {}
-        for label, weight, pseudo in species_card:
-            symbol = label_to_symbol(label)
-            valence = get_valence_electrons(symbol, data, pseudo)
-            valences[symbol] = valence
-        return valences
+# Read valences from the QE output file
+def read_valences(qe_output_file: str) -> Dict[str, float]:
+    valences = {}
+    is_reading = False
+    with open(qe_output_file, 'r') as file:
+        lines = file.readlines()
+        for line in lines:
+            if line.strip() == '' and is_reading:
+                break
+            if 'atomic species' in line and 'valence' in line:
+                is_reading = True
+                continue
+            if not is_reading:
+                continue
+            data = line.split()
+            specie, N_val_electrons = data[0], float(data[1])
+            assert specie in chemical_symbols, f'Unknown specie {specie}'
+            assert N_val_electrons > 0, f'Valence electrons for {specie} is not >0'
+            valences[specie] = N_val_electrons
+    return valences

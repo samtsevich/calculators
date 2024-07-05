@@ -145,7 +145,7 @@ def get_additional_params(type: str = 'opt'):
     params = {}
 
     if type == 'scf':
-        params.update({ 'Hamiltonian_MaxSCCIterations': 500,
+        params.update({ 'Hamiltonian_MaxSCCIterations': 2000,
                         'Hamiltonian_ReadInitialCharges': 'No',  # Static calculation
                         'Analysis_': '',
                         'Analysis_CalculateForces': 'Yes',})
