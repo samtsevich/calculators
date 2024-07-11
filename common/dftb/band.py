@@ -23,7 +23,7 @@ def dftb_band(args):
 
         params = copy(args['dftb_params'])
         params.update(get_additional_params(type='scf'))
-        params.update({'label': f'scf_{ID}',
+        params.update({'label': f'out_scf_{ID}',
                        'kpts': kpts,})
 
         calc_fold = outdir
@@ -46,7 +46,7 @@ def dftb_band(args):
         path = structure.cell.bandpath(npoints=100)
         print(path)
         params.update(get_additional_params(type='band'))
-        params.update({'label': f'band_{ID}',})
+        params.update({'label': f'out_band_{ID}',})
 
         assert params['Hamiltonian_SCC'] == 'Yes'
         assert params['Hamiltonian_MaxSCCIterations'] == 1

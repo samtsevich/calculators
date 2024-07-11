@@ -1,10 +1,9 @@
-import numpy as np
 import os
-
-from ase.io import read
-from ase.io.trajectory import TrajectoryReader
 from pathlib import Path
 
+import numpy as np
+from ase.io import read
+from ase.io.trajectory import TrajectoryReader
 
 N_PROCESS = 4
 DFTB_IN_FILES = ['dftb_in.hsd', 'dftb_pin.hsd']
@@ -54,6 +53,11 @@ def add_dftb_arguments(parser, calc_type):
                         default=KSPACING,
                         required=False,
                         help='Kspacing value')
+    parser.add_argument('-d3',
+                        dest='d3',
+                        action='store_true',
+                        default=False,
+                        help='Whether use D3 dispersion or not')
     parser.add_argument("--pol-rep",
                         dest="polynomial_repulsion",
                         action="store_true",
@@ -108,8 +112,8 @@ def get_args(args) -> dict:
         # 'Hamiltonian_MaxAngularMomentum_C': 'p',
         # 'Hamiltonian_MaxAngularMomentum_Li': 's',
         # TODO
-        # 'Parallel_': '',
-        # 'Parallel_Groups': nproc,
+        'Parallel_': '',
+        'Parallel_Groups': nproc,
     }
 
     if args['polynomial_repulsion']:
@@ -122,22 +126,35 @@ def get_args(args) -> dict:
     params.update(additional_params)
 
     # path to dftb+ executable > output_file.out
-    if 'DFTB_COMMAND' in os.environ:
-        DFTB_COMMAND = os.environ['DFTB_COMMAND']
-    else:
-        DFTB_COMMAND = f'mpiexec -np {nproc} dftb+ > output'
+    # if 'DFTB_COMMAND' in os.environ:
+    #     DFTB_COMMAND = os.environ['DFTB_COMMAND']
+    # else:
+    #     DFTB_COMMAND = f'mpiexec -np {nproc} dftb+ > output'
 
     params.update({
         'label': f'{name}',
-        'command': DFTB_COMMAND,
+        # 'command': DFTB_COMMAND,
     })
+
+    if args['d3']:
+        params.update(get_dispersion_params())
 
     args['dftb_params'] = params
 
     return args
 
 
-def get_additional_params(type: str = 'opt'):
+def get_dispersion_params() -> dict:
+    params = {'Hamiltonian_Dispersion_': 'DftD3',
+              'Hamiltonian_Dispersion_s6': 1.0,
+              'Hamiltonian_Dispersion_s8': 0.5883,
+              'Hamiltonian_Dispersion_Damping_': 'BeckeJohnson',
+              'Hamiltonian_Dispersion_Damping_a1': 0.5719,
+              'Hamiltonian_Dispersion_Damping_a2': 3.6017,}
+    return params
+
+
+def get_additional_params(type: str = 'opt') -> dict:
     '''
     type: 'band' or 'static' or 'opt_geometry'
     '''
@@ -145,8 +162,8 @@ def get_additional_params(type: str = 'opt'):
     params = {}
 
     if type == 'scf':
-        params.update({ 'Hamiltonian_MaxSCCIterations': 2000,
-                        'Hamiltonian_ReadInitialCharges': 'No',  # Static calculation
+        params.update({ 'Hamiltonian_MaxSCCIterations': 5000,
+                        'Hamiltonian_ReadInitialCharges': 'Yes',  # Static calculation
                         'Analysis_': '',
                         'Analysis_CalculateForces': 'Yes',})
     elif type == 'band':
@@ -157,6 +174,7 @@ def get_additional_params(type: str = 'opt'):
         params.update({'Driver_': 'LBFGS',
                        'Driver_MaxForceComponent': 1e-4,
                        'Driver_MaxSteps': 1000,
+                       'Hamiltonian_ReadInitialCharges': 'Yes',  # Static calculation
                        'Hamiltonian_MaxSCCIterations': 300,
                        })
     else:

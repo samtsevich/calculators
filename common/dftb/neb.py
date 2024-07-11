@@ -1,14 +1,12 @@
+from copy import copy
+
 from ase.calculators.dftb import Dftb
-from ase.io.vasp import write_vasp
 from ase.io.trajectory import Trajectory
+from ase.io.vasp import write_vasp
 from ase.neb import NEB
 from ase.optimize import BFGS, MDMin
 
-from copy import copy
-
-from common.dftb import (get_args,
-                         get_additional_params,
-                         get_KPoints)
+from common.dftb import get_additional_params, get_args, get_KPoints
 
 F_MAX = 0.01
 N_STEPS = 1000
