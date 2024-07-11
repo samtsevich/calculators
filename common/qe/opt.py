@@ -5,12 +5,13 @@ from shutil import move
 
 from ase.atoms import Atoms
 from ase.calculators.espresso import Espresso
+from ase.filters import UnitCellFilter
 from ase.io.vasp import write_vasp
 from ase.optimize import BFGS
 
 from common.qe import get_args
 
-F_MAX = 0.01
+
 N_STEPS = 1000
 
 
@@ -57,11 +58,12 @@ def qe_opt(args):
 
         # OPTIMIZATION #
 
-        opt = BFGS(structure,
-                   restart=str(outdir/f'{ID}.pckl'),
-                   trajectory=str(outdir/f'res_{ID}.traj'),
-                   logfile=str(outdir/f'{ID}.log'))
-        opt.run(fmax=F_MAX, steps=N_STEPS)
+        ucf = UnitCellFilter(structure)
+        opt = BFGS(ucf,
+                   restart=str(outdir/'optimization.pckl'),
+                   trajectory=str(outdir/'optimization.traj'),
+                   logfile=str(outdir/'optimization.log'))
+        opt.run(fmax=fmax, steps=N_STEPS)
 
         print(structure.get_potential_energy())
         write_vasp( outdir/f'final_{ID}.vasp', structure,
