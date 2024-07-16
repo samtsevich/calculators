@@ -49,7 +49,7 @@ def run_neb_dftb(args: dict, calc_type: str):
         for structure in neb.images:
             write_vasp(fp_final_poscars, structure, vasp5=True, direct=True)
 
-    with Trajectory(outdir/f'final_{name}.traj', 'w', properties=['energy', 'forces']) as traj:
+    with Trajectory(outdir/'final.traj', 'w', properties=['energy', 'forces']) as traj:
         for structure in neb.images:
             traj.write(structure)
     print(f'Calculation: {calc_type} of {name} is done.')

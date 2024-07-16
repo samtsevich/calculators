@@ -1,3 +1,4 @@
+from copy import copy
 from typing import List
 
 from ase.atoms import Atoms
@@ -30,7 +31,7 @@ def run_dftb_scf(args: dict, calc_type: str):
     print(f'Output directory: {outdir}')
     print(30 * '-')
 
-    params = args['dftb_params']
+    params = copy(args['dftb_params'])
     params.update(get_calc_type_params(calc_type=calc_type))
 
     kpts = kptdensity2monkhorstpack(atoms=structure, kptdensity=args['kspacing'])
@@ -40,9 +41,9 @@ def run_dftb_scf(args: dict, calc_type: str):
     structure.calc = Dftb(directory=calc_fold, **params)
     e = structure.get_potential_energy()
 
-    write_vasp(outdir/f'final_{name}.vasp', structure, sort=True, vasp5=True, direct=True)
+    write_vasp(outdir/'final.vasp', structure, sort=True, vasp5=True, direct=True)
     # ? add 'stress'
-    with Trajectory(outdir/f'final_{name}.traj', 'w', properties=['energy', 'forces']) as traj:
+    with Trajectory(outdir/'final.traj', 'w', properties=['energy', 'forces']) as traj:
         traj.write(structure, energy=e, forces=structure.get_forces())
 
     # Final output message

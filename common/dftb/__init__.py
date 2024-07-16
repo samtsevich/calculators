@@ -62,6 +62,9 @@ def add_dftb_arguments(parser, calc_type):
         msg = 'Number of steps for optimization'
         parser.add_argument("--nsteps", dest="nsteps", default=N_STEPS, type=int, required=False, help=msg)
 
+        msg = 'Whether we optimize the cell or not'
+        parser.add_argument("--full", dest="full_opt", action="store_true", default=False, help=msg)
+
     if calc_type == 'band':
         msg = 'E min for the band structure plotting'
         parser.add_argument("--emin", dest="emin", default=E_MIN, type=float, required=False, help=msg)
@@ -147,12 +150,17 @@ def get_calc_type_params(calc_type: str) -> dict:
     '''
 
     params = {}
-
-    if calc_type == 'scf' or calc_type == 'opt':
-        params.update({ 'Hamiltonian_MaxSCCIterations': 2000,
-                        'Hamiltonian_ReadInitialCharges': 'Yes',  # Static calculation
+    common_scf_opt = { 'Hamiltonian_MaxSCCIterations': 2000,
                         'Analysis_': '',
-                        'Analysis_CalculateForces': 'Yes',})
+                        'Analysis_CalculateForces': 'Yes',
+                        }
+
+    if calc_type == 'scf':
+        params.update(common_scf_opt)
+        params.update({'Hamiltonian_ReadInitialCharges': 'No'})    # Static calculation
+    elif calc_type == 'opt':
+        params.update(common_scf_opt)
+        params.update({'Hamiltonian_ReadInitialCharges': 'Yes'})    # Static calculation
     elif calc_type == 'band':
         params.update({ 'Hamiltonian_ReadInitialCharges': 'Yes',
                         'Hamiltonian_MaxSCCIterations': 1,
@@ -197,8 +205,8 @@ GENERAL_PARAMS = {
     'Hamiltonian_Mixer_MixingParameter': 0.1,
     # 'Hamiltonian_Dispersion' : 'LennardJones{Parameters = UFFParameters{}}',	## no dispersion
     # TODO
-    # 'Hamiltonian_SCCTolerance': 1.0E-8,
-    'Hamiltonian_SCCTolerance': 1.0E-5,
+    'Hamiltonian_SCCTolerance': 1.0E-6,
+    # 'Hamiltonian_SCCTolerance': 1.0E-5,
     'Options_': '',
     'Options_WriteResultsTag': 'Yes',        # Default:No
     'Options_WriteDetailedOut': 'Yes'

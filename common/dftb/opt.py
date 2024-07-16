@@ -28,11 +28,15 @@ def run_opt_dftb(args: dict, calc_type: str):
 
     outdir = args['outdir']
     calc_fold = outdir
+    is_full_opt = args['full_opt']
 
     # Printing input parameters
     # ------------------------------------------------
     print(30 * '-')
-    print(f'Full optimization calculation (cell + atomic positions) for {name}')
+    if is_full_opt:
+        print(f'Full optimization calculation (cell + atomic positions) for {name}')
+    else:
+        print(f'Optimization of atomic positions for {name}')
     print(f'F_MAX = {F_MAX}, N_STEPS = {N_STEPS}')
     print(f'kspacing = {args["kspacing"]}')
     print(f'Output directory: {outdir}')
@@ -47,20 +51,25 @@ def run_opt_dftb(args: dict, calc_type: str):
                     'kpts': kpts,})
 
     structure.calc = Dftb(directory=calc_fold, **params)
-    ucf = UnitCellFilter(structure)
-    opt = BFGS(ucf,
-    # opt = BFGS(structure,
+
+    # The object 'opt_struct' will be used for the optimization
+    if is_full_opt:
+        opt_struct = UnitCellFilter(structure)
+    else:
+        opt_struct = structure
+
+    opt = BFGS(opt_struct,
                 restart=str(outdir/'optimization.pckl'),
                 trajectory=str(outdir/'optimization.traj'),
                 logfile=str(outdir/'optimization.log'))
     opt.run(fmax=F_MAX, steps=N_STEPS)
 
     # e = structure.get_potential_energy()
-    write_vasp(outdir/f'final_{name}.vasp', structure,
+    write_vasp(outdir/'final.vasp', structure,
                 sort=True, vasp5=True, direct=True)
 
     # ? add 'stress'
-    with Trajectory(outdir/f'final_{name}.traj', 'w', properties=['energy', 'forces']) as final_traj:
+    with Trajectory(outdir/'final.traj', 'w', properties=['energy', 'forces']) as final_traj:
         final_traj.write(structure, energy=structure.get_potential_energy(), forces=structure.get_forces())
 
     # Final output message
