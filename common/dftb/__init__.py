@@ -1,13 +1,25 @@
-import os
 from pathlib import Path
 
 import numpy as np
 from ase.io import read
 from ase.io.trajectory import TrajectoryReader
 
-N_PROCESS = 4
-DFTB_IN_FILES = ['dftb_in.hsd', 'dftb_pin.hsd']
+N_PROCESS = 1
 KSPACING = 0.1
+
+# Fermi temperature for the filling
+FERMI_TEMP = 0.0001
+
+# For optimization, like neb or opt
+F_MAX = 0.01
+N_STEPS = 1000
+
+
+# For band structure plotting
+E_MIN = -20
+E_MAX = 25
+
+
 
 
 def add_dftb_arguments(parser, calc_type):
@@ -23,58 +35,48 @@ def add_dftb_arguments(parser, calc_type):
         raise ValueError(f'Unknown type {calc_type}')
 
     parser.description = description
-    parser.add_argument("-i",
-                        "--input",
-                        dest="input",
-                        help="path to the POSCAR-like file with input structure")
-    # parser.add_argument("-t",
-    #                     "--traj",
-    #                     dest="trajectory",
-    #                     required=False,
-    #                     help="path to the `.traj`-file with input structures")
-    parser.add_argument("-s",
-                        "--skf",
-                        dest="dir_skf",
-                        default=Path.cwd(),
-                        help='path to the folder with `.skf` files')
-    # parser.add_argument('--no-rep',
-    #                     dest='no_repulsion',
-    #                     type=bool,
-    #                     default=False,
-    #                     required=False,
-    #                     help='Whether we are taking into account repulsion or not.')
-    parser.add_argument('-np',
-                        dest='nproc',
-                        default=N_PROCESS,
-                        required=False,
-                        help='Number of processors')
-    parser.add_argument('--kspacing',
-                        dest='kspacing',
-                        default=KSPACING,
-                        required=False,
-                        help='Kspacing value')
-    parser.add_argument('-d3',
-                        dest='d3',
-                        action='store_true',
-                        default=False,
-                        help='Whether use D3 dispersion or not')
-    parser.add_argument("--pol-rep",
-                        dest="polynomial_repulsion",
-                        action="store_true",
-                        default=False,
-                        help='Whether use polynomial repulsion or splines inside SKF files. Default: False')
-    parser.add_argument("-o",
-                        "--outdir",
-                        dest="outdir",
-                        required=False,
-                        help=' output dir of the calculation')
+
+    msg = 'path to the POSCAR-like file with input structure'
+    parser.add_argument("-i", "--input", dest="input", help=msg)
+
+    msg = 'path to the folder with `.skf` files'
+    parser.add_argument("-s", "--skf", dest="skfs_dir", default=Path.cwd(), help=msg)
+
+    msg = 'Number of processors'
+    parser.add_argument('-np', dest='nproc', default=N_PROCESS, type=int, required=False, help=msg)
+
+    parser.add_argument('--kspacing', dest='kspacing', default=KSPACING, type=float, required=False, help='Kspacing value')
+
+    parser.add_argument('-d3', dest='d3', action='store_true', default=False, help='Whether use D3 dispersion or not')
+
+    msg = 'Whether use polynomial repulsion or splines inside SKF files. Default: False'
+    parser.add_argument("--pol-rep", dest="pol_rep", action="store_true", default=False, help=msg)
+
+    msg = 'Fermi Temperature for the filling'
+    parser.add_argument("--fermi-temp", dest="fermi_temp", default=FERMI_TEMP, type=float, required=False, help=msg)
+
+    if calc_type == 'opt' or calc_type == 'neb':
+        msg = 'F_MAX for optimization'
+        parser.add_argument("--fmax", dest="fmax", default=F_MAX, type=float, required=False, help=msg)
+
+        msg = 'Number of steps for optimization'
+        parser.add_argument("--nsteps", dest="nsteps", default=N_STEPS, type=int, required=False, help=msg)
+
+    if calc_type == 'band':
+        msg = 'E min for the band structure plotting'
+        parser.add_argument("--emin", dest="emin", default=E_MIN, type=float, required=False, help=msg)
+
+        msg = 'E max for the band structure plotting'
+        parser.add_argument("--emax", dest="emax", default=E_MAX, type=float, required=False, help=msg)
+
+    # Output
+    msg = 'output dir of the calculation'
+    parser.add_argument("-o", "--outdir", dest="outdir", required=False, help=msg)
+
     return parser
 
 
-def get_args(args) -> dict:
-    calc_type = args.subcommand
-    args = vars(args)
-
+def get_args(args: dict, calc_type: str) -> dict:
     if 'input' in args.keys() and args['input'] is not None:
         input_path = Path(args['input'])
         assert input_path.exists(), f'File {input_path} does not exist'
@@ -85,15 +87,13 @@ def get_args(args) -> dict:
 
     args['name'] = name
 
-    dir_skf = Path(args['dir_skf'])
-    if dir_skf.is_symlink():
-        dir_skf = dir_skf.readlink()
+    skfs_dir = Path(args['skfs_dir'])
+    if skfs_dir.is_symlink():
+        skfs_dir = skfs_dir.readlink()
     else:
-        dir_skf = dir_skf.resolve()
-    assert dir_skf.is_dir(), 'Please, check carefully path to the directory with .skf files'
-    args['dir_skf'] = dir_skf
-
-    nproc = args['nproc']
+        skfs_dir = skfs_dir.resolve()
+    assert skfs_dir.is_dir(), 'Please, check carefully path to the directory with .skf files'
+    args['skfs_dir'] = skfs_dir
 
     if args['outdir'] is None:
         outdir = Path.cwd()/f'{calc_type}_{name}'
@@ -104,47 +104,34 @@ def get_args(args) -> dict:
 
     params = GENERAL_PARAMS.copy()
     additional_params = {
-        'slako_dir': str(dir_skf)+'/',
-        'Hamiltonian_SlaterKosterFiles_Prefix': str(dir_skf)+'/',
+        'slako_dir': str(skfs_dir)+'/',
+        'Hamiltonian_SlaterKosterFiles_Prefix': str(skfs_dir)+'/',
         'Hamiltonian_SlaterKosterFiles_Separator': '"-"',
         'Hamiltonian_SlaterKosterFiles_Suffix': '".skf"',
         # 'run_manyDftb_steps': False,
         # 'Hamiltonian_MaxAngularMomentum_C': 'p',
         # 'Hamiltonian_MaxAngularMomentum_Li': 's',
         # TODO
-        'Parallel_': '',
-        'Parallel_Groups': nproc,
+        # 'Parallel_': '',
+        # 'Parallel_Groups': nproc,
     }
 
-    if args['polynomial_repulsion']:
-        params.update({'Hamiltonian_PolynomialRepulsive': 'SetForAll {YES}',})
+    if args['pol_rep']:
+        additional_params.update({'Hamiltonian_PolynomialRepulsive': 'SetForAll {YES}',})
 
-    if calc_type == 'scf' or calc_type == 'opt':
-        additional_params.update(get_additional_params(type='scf'))
-    # elif :
-    #     additional_params.update(get_additional_params(type='opt'))
-    params.update(additional_params)
-
-    # path to dftb+ executable > output_file.out
-    # if 'DFTB_COMMAND' in os.environ:
-    #     DFTB_COMMAND = os.environ['DFTB_COMMAND']
-    # else:
-    #     DFTB_COMMAND = f'mpiexec -np {nproc} dftb+ > output'
-
-    params.update({
-        'label': f'{name}',
-        # 'command': DFTB_COMMAND,
-    })
+    additional_params.update(get_calc_type_params(calc_type=calc_type))
 
     if args['d3']:
-        params.update(get_dispersion_params())
+        additional_params.update(get_dispersion_params())
 
+    params.update(additional_params)
     args['dftb_params'] = params
 
     return args
 
 
 def get_dispersion_params() -> dict:
+    # TODO these parameters must be tunable
     params = {'Hamiltonian_Dispersion_': 'DftD3',
               'Hamiltonian_Dispersion_s6': 1.0,
               'Hamiltonian_Dispersion_s8': 0.5883,
@@ -154,29 +141,29 @@ def get_dispersion_params() -> dict:
     return params
 
 
-def get_additional_params(type: str = 'opt') -> dict:
+def get_calc_type_params(calc_type: str) -> dict:
     '''
     type: 'band' or 'static' or 'opt_geometry'
     '''
 
     params = {}
 
-    if type == 'scf':
-        params.update({ 'Hamiltonian_MaxSCCIterations': 5000,
+    if calc_type == 'scf' or calc_type == 'opt':
+        params.update({ 'Hamiltonian_MaxSCCIterations': 2000,
                         'Hamiltonian_ReadInitialCharges': 'Yes',  # Static calculation
                         'Analysis_': '',
                         'Analysis_CalculateForces': 'Yes',})
-    elif type == 'band':
+    elif calc_type == 'band':
         params.update({ 'Hamiltonian_ReadInitialCharges': 'Yes',
                         'Hamiltonian_MaxSCCIterations': 1,
                         'Hamiltonian_SCCTolerance': 1e6,})
-    elif type == 'opt':
-        params.update({'Driver_': 'LBFGS',
-                       'Driver_MaxForceComponent': 1e-4,
-                       'Driver_MaxSteps': 1000,
-                       'Hamiltonian_ReadInitialCharges': 'Yes',  # Static calculation
-                       'Hamiltonian_MaxSCCIterations': 300,
-                       })
+    # elif type == 'opt':
+    #     params.update({'Driver_': 'LBFGS',
+    #                    'Driver_MaxForceComponent': 1e-4,
+    #                    'Driver_MaxSteps': 1000,
+    #                    'Hamiltonian_ReadInitialCharges': 'Yes',  # Static calculation
+    #                    'Hamiltonian_MaxSCCIterations': 300,
+    #                    })
     else:
         raise ValueError('type must be band or static or opt_geometry')
     return params
@@ -200,8 +187,9 @@ def get_KPoints(kspacing: float, cell):
 GENERAL_PARAMS = {
     'Hamiltonian_': 'DFTB',
     'Hamiltonian_SCC': 'Yes',
+    'Hamiltonian_ShellResolvedSCC': 'Yes',
     'Hamiltonian_Filling_': 'Fermi',
-    'Hamiltonian_Filling_Temperature': 0.0001,  # T in atomic units
+    'Hamiltonian_Filling_Temperature': FERMI_TEMP,  # T in atomic units
     'Hamiltonian_ForceEvaluation': 'dynamics',
     'Hamiltonian_MaxSCCIterations': 500,
     # filling and mixer flags are optional

@@ -30,6 +30,13 @@ DFTB_CALC_TYPES = {'opt': dftb_opt,
 # VASP_CALC_TYPES = {'scf': vasp_scf,
 #                    'band': vasp_band}
 
+def _precheck():
+    '''
+    Raise an error if a version of package is too low
+    '''
+    if ase.__version__ < '3.23.0':
+        raise ValueError('ASE version must be at least 3.23.0')
+
 
 
 def main():
@@ -57,8 +64,5 @@ def main():
 
 
 if __name__ == "__main__":
-    # pre-check for ASE version
-    if ase.__version__ < '3.23.0':
-        raise ValueError('ASE version must be at least 3.23.0')
-
+    _precheck()
     main()
