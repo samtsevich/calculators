@@ -115,6 +115,7 @@ def get_args(args: dict, calc_type: str) -> dict:
         'Hamiltonian_SlaterKosterFiles_Prefix': str(skfs_dir) + '/',
         'Hamiltonian_SlaterKosterFiles_Separator': '"-"',
         'Hamiltonian_SlaterKosterFiles_Suffix': '".skf"',
+        'Hamiltonian_Filling_Temperature': args['fermi_temp'],  # T in atomic units
         # 'run_manyDftb_steps': False,
         # 'Hamiltonian_MaxAngularMomentum_C': 'p',
         # 'Hamiltonian_MaxAngularMomentum_Li': 's',
@@ -210,7 +211,7 @@ GENERAL_PARAMS = {
     'Hamiltonian_SCC': 'Yes',
     'Hamiltonian_ShellResolvedSCC': 'Yes',
     'Hamiltonian_Filling_': 'Fermi',
-    'Hamiltonian_Filling_Temperature': FERMI_TEMP,  # T in atomic units
+    # 'Hamiltonian_Filling_Temperature': FERMI_TEMP,  # T in atomic units
     'Hamiltonian_ForceEvaluation': 'dynamics',
     'Hamiltonian_MaxSCCIterations': 500,
     # filling and mixer flags are optional
