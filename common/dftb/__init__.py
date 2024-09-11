@@ -5,7 +5,7 @@ from ase.io import read
 from ase.io.trajectory import TrajectoryReader
 
 N_PROCESS = 1
-KSPACING = 0.1
+KSPACING = 0.04
 
 # Fermi temperature for the filling
 FERMI_TEMP = 0.0001
@@ -20,8 +20,6 @@ E_MIN = -20
 E_MAX = 25
 
 
-
-
 def add_dftb_arguments(parser, calc_type):
     if calc_type == 'opt':
         description = 'ASE optimization with DFTB'
@@ -29,6 +27,8 @@ def add_dftb_arguments(parser, calc_type):
         description = 'ASE single point calculation with DFTB'
     elif calc_type == 'band':
         description = 'ASE band structure calculation with DFTB'
+    elif calc_type == 'eos':
+        description = 'ASE EOS calculation with DFTB'
     elif calc_type == 'neb':
         description = 'ASE NEB calculation with DFTB'
     else:
@@ -45,7 +45,9 @@ def add_dftb_arguments(parser, calc_type):
     msg = 'Number of processors'
     parser.add_argument('-np', dest='nproc', default=N_PROCESS, type=int, required=False, help=msg)
 
-    parser.add_argument('--kspacing', dest='kspacing', default=KSPACING, type=float, required=False, help='Kspacing value')
+    parser.add_argument(
+        '--kspacing', dest='kspacing', default=KSPACING, type=float, required=False, help='Kspacing value'
+    )
 
     parser.add_argument('-d3', dest='d3', action='store_true', default=False, help='Whether use D3 dispersion or not')
 
@@ -55,7 +57,7 @@ def add_dftb_arguments(parser, calc_type):
     msg = 'Fermi Temperature for the filling'
     parser.add_argument("--fermi-temp", dest="fermi_temp", default=FERMI_TEMP, type=float, required=False, help=msg)
 
-    if calc_type == 'opt' or calc_type == 'neb':
+    if calc_type == 'opt' or calc_type == 'neb' or calc_type == 'eos':
         msg = 'F_MAX for optimization'
         parser.add_argument("--fmax", dest="fmax", default=F_MAX, type=float, required=False, help=msg)
 
@@ -80,7 +82,9 @@ def add_dftb_arguments(parser, calc_type):
 
 
 def get_args(args: dict, calc_type: str) -> dict:
-    if 'input' in args.keys() and args['input'] is not None:
+    if 'structures' in args.keys() and args['structures'] is not None:
+        name = args['name']
+    elif 'input' in args.keys() and args['input'] is not None:
         input_path = Path(args['input'])
         assert input_path.exists(), f'File {input_path} does not exist'
         args['structures'] = read(input_path, index=':')
@@ -99,7 +103,7 @@ def get_args(args: dict, calc_type: str) -> dict:
     args['skfs_dir'] = skfs_dir
 
     if args['outdir'] is None:
-        outdir = Path.cwd()/f'{calc_type}_{name}'
+        outdir = Path.cwd() / f'{calc_type}_{name}'
     else:
         outdir = Path(args['outdir'])
     outdir.mkdir(parents=True, exist_ok=True)
@@ -107,8 +111,8 @@ def get_args(args: dict, calc_type: str) -> dict:
 
     params = GENERAL_PARAMS.copy()
     additional_params = {
-        'slako_dir': str(skfs_dir)+'/',
-        'Hamiltonian_SlaterKosterFiles_Prefix': str(skfs_dir)+'/',
+        'slako_dir': str(skfs_dir) + '/',
+        'Hamiltonian_SlaterKosterFiles_Prefix': str(skfs_dir) + '/',
         'Hamiltonian_SlaterKosterFiles_Separator': '"-"',
         'Hamiltonian_SlaterKosterFiles_Suffix': '".skf"',
         # 'run_manyDftb_steps': False,
@@ -120,7 +124,11 @@ def get_args(args: dict, calc_type: str) -> dict:
     }
 
     if args['pol_rep']:
-        additional_params.update({'Hamiltonian_PolynomialRepulsive': 'SetForAll {YES}',})
+        additional_params.update(
+            {
+                'Hamiltonian_PolynomialRepulsive': 'SetForAll {YES}',
+            }
+        )
 
     additional_params.update(get_calc_type_params(calc_type=calc_type))
 
@@ -135,12 +143,14 @@ def get_args(args: dict, calc_type: str) -> dict:
 
 def get_dispersion_params() -> dict:
     # TODO these parameters must be tunable
-    params = {'Hamiltonian_Dispersion_': 'DftD3',
-              'Hamiltonian_Dispersion_s6': 1.0,
-              'Hamiltonian_Dispersion_s8': 0.5883,
-              'Hamiltonian_Dispersion_Damping_': 'BeckeJohnson',
-              'Hamiltonian_Dispersion_Damping_a1': 0.5719,
-              'Hamiltonian_Dispersion_Damping_a2': 3.6017,}
+    params = {
+        'Hamiltonian_Dispersion_': 'DftD3',
+        'Hamiltonian_Dispersion_s6': 1.0,
+        'Hamiltonian_Dispersion_s8': 0.5883,
+        'Hamiltonian_Dispersion_Damping_': 'BeckeJohnson',
+        'Hamiltonian_Dispersion_Damping_a1': 0.5719,
+        'Hamiltonian_Dispersion_Damping_a2': 3.6017,
+    }
     return params
 
 
@@ -150,21 +160,27 @@ def get_calc_type_params(calc_type: str) -> dict:
     '''
 
     params = {}
-    common_scf_opt = { 'Hamiltonian_MaxSCCIterations': 2000,
-                        'Analysis_': '',
-                        'Analysis_CalculateForces': 'Yes',
-                        }
+    common_scf_opt = {
+        'Hamiltonian_MaxSCCIterations': 2000,
+        'Analysis_': '',
+        'Analysis_CalculateForces': 'Yes',
+    }
 
     if calc_type == 'scf':
         params.update(common_scf_opt)
-        params.update({'Hamiltonian_ReadInitialCharges': 'No'})    # Static calculation
-    elif calc_type == 'opt':
+        params.update({'Hamiltonian_ReadInitialCharges': 'No'})  # Static calculation
+    elif calc_type == 'opt' or calc_type == 'eos':
         params.update(common_scf_opt)
-        params.update({'Hamiltonian_ReadInitialCharges': 'Yes'})    # Static calculation
+        params.update({'Hamiltonian_ReadInitialCharges': 'Yes'})  # Static calculation
     elif calc_type == 'band':
-        params.update({ 'Hamiltonian_ReadInitialCharges': 'Yes',
-                        'Hamiltonian_MaxSCCIterations': 1,
-                        'Hamiltonian_SCCTolerance': 1e6,})
+        params.update(
+            {
+                'Hamiltonian_ReadInitialCharges': 'Yes',
+                'Hamiltonian_MaxSCCIterations': 1,
+                'Hamiltonian_SCCTolerance': 1e6,
+            }
+        )
+
     # elif type == 'opt':
     #     params.update({'Driver_': 'LBFGS',
     #                    'Driver_MaxForceComponent': 1e-4,
@@ -181,12 +197,9 @@ def get_KPoints(kspacing: float, cell):
     assert kspacing > 0
     angLattice = cell.cellpar()
     dist = np.zeros(3)
-    dist[2] = cell.volume / (angLattice[0] * angLattice[1]
-                             * np.sin(angLattice[5]*np.pi/180))
-    dist[1] = cell.volume / (angLattice[0] * angLattice[2]
-                             * np.sin(angLattice[4]*np.pi/180))
-    dist[0] = cell.volume / (angLattice[1] * angLattice[2]
-                             * np.sin(angLattice[3]*np.pi/180))
+    dist[2] = cell.volume / (angLattice[0] * angLattice[1] * np.sin(angLattice[5] * np.pi / 180))
+    dist[1] = cell.volume / (angLattice[0] * angLattice[2] * np.sin(angLattice[4] * np.pi / 180))
+    dist[0] = cell.volume / (angLattice[1] * angLattice[2] * np.sin(angLattice[3] * np.pi / 180))
 
     Kpoints = [int(x) for x in np.ceil(1.0 / (dist * kspacing))]
     return Kpoints
@@ -205,9 +218,9 @@ GENERAL_PARAMS = {
     'Hamiltonian_Mixer_MixingParameter': 0.1,
     # 'Hamiltonian_Dispersion' : 'LennardJones{Parameters = UFFParameters{}}',	## no dispersion
     # TODO
-    'Hamiltonian_SCCTolerance': 1.0E-6,
+    'Hamiltonian_SCCTolerance': 1.0e-6,
     # 'Hamiltonian_SCCTolerance': 1.0E-5,
     'Options_': '',
-    'Options_WriteResultsTag': 'Yes',        # Default:No
-    'Options_WriteDetailedOut': 'Yes'
+    'Options_WriteResultsTag': 'Yes',  # Default:No
+    'Options_WriteDetailedOut': 'Yes',
 }

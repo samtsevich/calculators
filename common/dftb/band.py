@@ -1,15 +1,17 @@
 from copy import copy
 from pathlib import Path
-from typing import List
+from typing import Dict, List
 
+import numpy as np
 from ase.atoms import Atoms
 from ase.calculators.calculator import kptdensity2monkhorstpack
 from ase.calculators.dftb import Dftb
 from ase.io.vasp import write_vasp
-from ase.spectrum.band_structure import get_band_structure
+from ase.spectrum.band_structure import BandStructure, get_band_structure
+from matplotlib import pyplot as plt
 
 from common import fix_fermi_level, get_N_val_electrons
-from common.dftb import get_args, get_calc_type_params
+from common.dftb import get_args, get_calc_type_params, get_KPoints
 
 N_KPOINTS = 200
 
@@ -43,14 +45,18 @@ def run_dftb_band(args: dict, calc_type: str):
     # ------------------------------------------------
     params = copy(args['dftb_params'])
     params.update(get_calc_type_params(calc_type='scf'))
-    kpts = kptdensity2monkhorstpack(atoms=structure, kptdensity=args['kspacing'])
-    params.update({'label': f'out_scf_{name}',
-                    'kpts': kpts,})
+    kpts = get_KPoints(kspacing=args['kspacing'], cell=structure.cell)
+    # kpts = kptdensity2monkhorstpack(atoms=structure, kptdensity=args['kspacing'])
+    params.update(
+        {
+            'label': f'out_scf_{name}',
+            'kpts': kpts,
+        }
+    )
 
     calc_fold = outdir
 
-    write_vasp(calc_fold/f'a_{name}.vasp', structure,
-            sort=True, vasp5=True, direct=True)
+    write_vasp(calc_fold / f'a_{name}.vasp', structure, sort=True, vasp5=True, direct=True)
 
     scf_calc = Dftb(atoms=structure, directory=calc_fold, **params)
     structure.calc = scf_calc
@@ -64,7 +70,11 @@ def run_dftb_band(args: dict, calc_type: str):
     path = structure.cell.bandpath(npoints=N_KPOINTS)
     print(path)
     params.update(get_calc_type_params(calc_type='band'))
-    params.update({'label': f'out_band_{name}',})
+    params.update(
+        {
+            'label': f'out_band_{name}',
+        }
+    )
 
     assert params['Hamiltonian_SCC'] == 'Yes'
     assert params['Hamiltonian_MaxSCCIterations'] == 1
@@ -76,11 +86,13 @@ def run_dftb_band(args: dict, calc_type: str):
     band_calc.calculate(structure)
     bs = get_band_structure(atoms=structure, calc=band_calc)
 
+    print(f'Fermi level = {bs._reference}')
+
     # Fix Fermi level
     N_val_e = get_N_val_electrons(structure)
     bs = fix_fermi_level(bs, N_val_e).subtract_reference()
-    bs.write(outdir/f'bs_{name}.json')
-    bs.plot(filename=outdir/f'bs_{name}.png', emin=emin, emax=emax)
+    bs.write(outdir / f'bs_{name}.json')
+    bs.plot(filename=outdir / f'bs_{name}.png', emin=emin, emax=emax)
 
     # Final output message
     # ------------------------------------------------

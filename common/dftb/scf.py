@@ -7,7 +7,7 @@ from ase.calculators.dftb import Dftb
 from ase.io.trajectory import Trajectory
 from ase.io.vasp import write_vasp
 
-from common.dftb import get_args, get_calc_type_params
+from common.dftb import get_args, get_calc_type_params, get_KPoints
 
 
 def run_dftb_scf(args: dict, calc_type: str):
@@ -34,23 +34,27 @@ def run_dftb_scf(args: dict, calc_type: str):
     params = copy(args['dftb_params'])
     params.update(get_calc_type_params(calc_type=calc_type))
 
-    kpts = kptdensity2monkhorstpack(atoms=structure, kptdensity=args['kspacing'])
-    params.update({'label': f'out_{calc_type}_{name}',
-                    'kpts': kpts,})
+    kpts = get_KPoints(kspacing=args['kspacing'], cell=structure.cell)
+    # kpts = kptdensity2monkhorstpack(atoms=structure, kptdensity=args['kspacing'])
+    params.update(
+        {
+            'label': f'out_{calc_type}_{name}',
+            'kpts': kpts,
+        }
+    )
 
     structure.calc = Dftb(directory=calc_fold, **params)
     e = structure.get_potential_energy()
 
-    write_vasp(outdir/'final.vasp', structure, sort=True, vasp5=True, direct=True)
+    write_vasp(outdir / 'final.vasp', structure, sort=True, vasp5=True, direct=True)
     # ? add 'stress'
-    with Trajectory(outdir/'final.traj', 'w', properties=['energy', 'forces']) as traj:
+    with Trajectory(outdir / 'final.traj', 'w', properties=['energy', 'forces']) as traj:
         traj.write(structure, energy=e, forces=structure.get_forces())
 
     # Final output message
     # ------------------------------------------------
     print(f'SCF of {name} is done.')
     print(30 * '-')
-
 
 
 def dftb_scf(args):

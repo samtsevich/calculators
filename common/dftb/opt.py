@@ -8,7 +8,7 @@ from ase.io.trajectory import Trajectory
 from ase.io.vasp import write_vasp
 from ase.optimize import BFGS
 
-from common.dftb import get_args, get_calc_type_params
+from common.dftb import get_args, get_calc_type_params, get_KPoints
 
 
 def run_opt_dftb(args: dict, calc_type: str):
@@ -45,10 +45,15 @@ def run_opt_dftb(args: dict, calc_type: str):
     params = copy(args['dftb_params'])
     params.update(get_calc_type_params(calc_type='scf'))
 
-    kpts = kptdensity2monkhorstpack(atoms=structure, kptdensity=args['kspacing'])
+    # kpts = kptdensity2monkhorstpack(atoms=structure, kptdensity=args['kspacing'])
+    kpts = get_KPoints(args['kspacing'], structure.get_cell())
     # Label is used for the output file name
-    params.update({'label': f'out_{calc_type}_{name}',
-                    'kpts': kpts,})
+    params.update(
+        {
+            'label': f'out_{calc_type}_{name}',
+            'kpts': kpts,
+        }
+    )
 
     structure.calc = Dftb(directory=calc_fold, **params)
 
@@ -58,18 +63,19 @@ def run_opt_dftb(args: dict, calc_type: str):
     else:
         opt_struct = structure
 
-    opt = BFGS(opt_struct,
-                restart=str(outdir/'optimization.pckl'),
-                trajectory=str(outdir/'optimization.traj'),
-                logfile=str(outdir/'optimization.log'))
+    opt = BFGS(
+        opt_struct,
+        restart=str(outdir / 'optimization.pckl'),
+        trajectory=str(outdir / 'optimization.traj'),
+        logfile=str(outdir / 'optimization.log'),
+    )
     opt.run(fmax=F_MAX, steps=N_STEPS)
 
     # e = structure.get_potential_energy()
-    write_vasp(outdir/'final.vasp', structure,
-                sort=True, vasp5=True, direct=True)
+    write_vasp(outdir / 'final.vasp', structure, sort=True, vasp5=True, direct=True)
 
     # ? add 'stress'
-    with Trajectory(outdir/'final.traj', 'w', properties=['energy', 'forces']) as final_traj:
+    with Trajectory(outdir / 'final.traj', 'w', properties=['energy', 'forces']) as final_traj:
         final_traj.write(structure, energy=structure.get_potential_energy(), forces=structure.get_forces())
 
     # Final output message

@@ -6,6 +6,7 @@ from common.dftb import add_dftb_arguments
 from common.dftb.band import dftb_band
 from common.dftb.neb import dftb_neb
 from common.dftb.opt import dftb_opt
+from common.dftb.eos import dftb_eos
 from common.dftb.scf import dftb_scf
 from common.qe import add_qe_arguments
 from common.qe.band import qe_band
@@ -25,6 +26,7 @@ QE_CALC_TYPES ={'opt': qe_opt,
 DFTB_CALC_TYPES = {'opt': dftb_opt,
                    'scf': dftb_scf,
                    'band': dftb_band,
+                   'eos': dftb_eos,
                    'neb': dftb_neb}
 
 # VASP_CALC_TYPES = {'scf': vasp_scf,
