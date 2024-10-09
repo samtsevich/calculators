@@ -7,10 +7,11 @@ from ase.calculators.dftb import Dftb
 from ase.io.trajectory import Trajectory
 from ase.io.vasp import write_vasp
 
-from common.dftb import get_args, get_calc_type_params, get_KPoints
+from .. import get_KPoints
+from . import get_args, get_calc_type_params
 
 
-def run_dftb_scf(args: dict, calc_type: str):
+def run_scf_dftb(args: dict, calc_type: str):
     # Reading the arguments
     # ------------------------------------------------
     assert calc_type == 'scf', 'This function is only for SCF calculation'
@@ -62,4 +63,4 @@ def dftb_scf(args):
     calc_type: str = args.subcommand
     args: dict = vars(args)
 
-    run_dftb_scf(args, calc_type=calc_type)
+    run_scf_dftb(args, calc_type=calc_type)

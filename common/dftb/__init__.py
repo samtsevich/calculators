@@ -2,17 +2,13 @@ from pathlib import Path
 
 import numpy as np
 from ase.io import read
-from ase.io.trajectory import TrajectoryReader
+
+from .. import F_MAX, KSPACING, N_STEPS
 
 N_PROCESS = 1
-KSPACING = 0.04
 
 # Fermi temperature for the filling
 FERMI_TEMP = 0.0001
-
-# For optimization, like neb or opt
-F_MAX = 0.01
-N_STEPS = 1000
 
 
 # For band structure plotting
@@ -194,18 +190,6 @@ def get_calc_type_params(calc_type: str) -> dict:
     return params
 
 
-def get_KPoints(kspacing: float, cell):
-    assert kspacing > 0
-    angLattice = cell.cellpar()
-    dist = np.zeros(3)
-    dist[2] = cell.volume / (angLattice[0] * angLattice[1] * np.sin(angLattice[5] * np.pi / 180))
-    dist[1] = cell.volume / (angLattice[0] * angLattice[2] * np.sin(angLattice[4] * np.pi / 180))
-    dist[0] = cell.volume / (angLattice[1] * angLattice[2] * np.sin(angLattice[3] * np.pi / 180))
-
-    Kpoints = [int(x) for x in np.ceil(1.0 / (dist * kspacing))]
-    return Kpoints
-
-
 GENERAL_PARAMS = {
     'Hamiltonian_': 'DFTB',
     'Hamiltonian_SCC': 'Yes',
@@ -224,4 +208,8 @@ GENERAL_PARAMS = {
     'Options_': '',
     'Options_WriteResultsTag': 'Yes',  # Default:No
     'Options_WriteDetailedOut': 'Yes',
+    # Parser options
+    'ParserOptions_': '',
+    'ParserOptions_IgnoreUnprocessedNodes': 'Yes',
+    'ParserOptions_ParserVersion': 10,
 }

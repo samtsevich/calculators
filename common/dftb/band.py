@@ -10,8 +10,8 @@ from ase.io.vasp import write_vasp
 from ase.spectrum.band_structure import BandStructure, get_band_structure
 from matplotlib import pyplot as plt
 
-from common import fix_fermi_level, get_N_val_electrons
-from common.dftb import get_args, get_calc_type_params, get_KPoints
+from .. import fix_fermi_level, get_KPoints, get_N_val_electrons
+from . import get_args, get_calc_type_params
 
 N_KPOINTS = 200
 

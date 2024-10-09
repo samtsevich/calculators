@@ -8,9 +8,8 @@ from ase.calculators.calculator import Calculator
 from ase.calculators.espresso import Espresso
 from ase.spectrum.band_structure import get_band_structure
 
-from common import fix_fermi_level
-from common.qe import get_args, read_valences
-
+from .. import fix_fermi_level
+from . import get_args, read_valences
 
 
 def qe_band(args):
@@ -33,11 +32,9 @@ def qe_band(args):
     data['calculation'] = 'scf'
     data['control'].update({'outdir': './tmp', 'prefix': str(name), 'verbosity': 'high'})
 
-    calc: Calculator = Espresso(input_data=data,
-                                pseudopotentials=pp,
-                                pseudo_dir=str(pp_dir),
-                                kspacing=kspacing,
-                                directory=str(calc_fold))
+    calc: Calculator = Espresso(
+        input_data=data, pseudopotentials=pp, pseudo_dir=str(pp_dir), kspacing=kspacing, directory=str(calc_fold)
+    )
 
     for i, structure in enumerate(structures):
         ID = f'{name}_{i}'
@@ -63,12 +60,9 @@ def qe_band(args):
         path = structure.cell.bandpath(npoints=200)
         print(f'BandPath: {path}')
 
-
-        calc: Calculator = Espresso(input_data=data,
-                                    pseudopotentials=pp,
-                                    pseudo_dir=str(pp_dir),
-                                    kpts=path,
-                                    directory=str(calc_fold))
+        calc: Calculator = Espresso(
+            input_data=data, pseudopotentials=pp, pseudo_dir=str(pp_dir), kpts=path, directory=str(calc_fold)
+        )
         # calc.set(kpts=path, input_data=data)
         # calc.calculate(atoms=structure)
         structure.calc = calc

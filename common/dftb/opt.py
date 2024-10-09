@@ -8,7 +8,8 @@ from ase.io.trajectory import Trajectory
 from ase.io.vasp import write_vasp
 from ase.optimize import BFGS
 
-from common.dftb import get_args, get_calc_type_params, get_KPoints
+from .. import get_KPoints
+from . import get_args, get_calc_type_params
 
 
 def run_opt_dftb(args: dict, calc_type: str):

@@ -7,8 +7,8 @@ from ase.io import read
 from ase.io.trajectory import Trajectory
 from ase.units import kJ
 
-from common.dftb import get_args, get_calc_type_params
-from common.dftb.opt import run_opt_dftb
+from . import get_args
+from .opt import run_opt_dftb
 
 
 def run_dftb_eos(args: dict, calc_type: str):
@@ -33,6 +33,9 @@ def run_dftb_eos(args: dict, calc_type: str):
     new_args = copy(args)
 
     new_args['outdir'] = args['outdir'] / 'orig_struct'
+
+    # We need to perform full optimization of the reference structure
+    new_args['full_opt'] = True
     run_opt_dftb(new_args, calc_type='opt')
     optimized_struct: Atoms = read(new_args['outdir'] / 'final.traj', index=-1)
 

@@ -6,8 +6,7 @@ from ase.data import chemical_symbols
 from ase.io import read
 from ase.io.espresso import read_fortran_namelist
 
-KSPACING = 0.04
-F_MAX = 0.01
+from .. import F_MAX, KSPACING, N_STEPS
 
 
 def add_qe_arguments(parser, calc_type):
@@ -26,61 +25,32 @@ def add_qe_arguments(parser, calc_type):
     parser.description = description
 
     # Arguments common to all actions
-    parser.add_argument('-c',
-                        '--config',
-                        dest='config',
-                        required=False,
-                        help='path to the config file')
+    parser.add_argument('-c', '--config', dest='config', required=False, help='path to the config file')
 
-    parser.add_argument('-i',
-                        '--input',
-                        dest='input',
-                        required=False,
-                        help='path to the input file written in POSCAR format')
-    parser.add_argument('--fixed_idx',
-                        dest='fixed_idx',
-                        required=False,
-                        help='path to the file with fixed indices')
-    parser.add_argument('-k',
-                        '--options',
-                        dest='options_file',
-                        required=False,
-                        help='path to the options file')
-    parser.add_argument('-pp',
-                        dest='pseudopotentials',
-                        required=False,
-                        help='dict of pseudopotentials for ASE')
-    parser.add_argument('--pp_dir',
-                        dest='pp_dir',
-                        required=False,
-                        help='path to folder with pseudopotentials')
-    parser.add_argument('-o',
-                        '--outdir',
-                        dest='outdir',
-                        required=False,
-                        help='path to the output folder')
-    parser.add_argument('--kspacing',
-                        dest='kspacing',
-                        default=KSPACING,
-                        required=False,
-                        help='Kspacing value')
-    if calc_type == 'opt':
-        parser.add_argument('-f',
-                            '--fmax',
-                            dest='fmax',
-                            type=float,
-                            default=F_MAX,
-                            required=False,
-                            help='fmax for relaxation')
+    msg = 'path to the input file written in POSCAR format'
+    parser.add_argument('-i', '--input', dest='input', required=False, help=msg)
+
+    parser.add_argument('--fixed_idx', dest='fixed_idx', required=False, help='path to the file with fixed indices')
+    parser.add_argument('-k', '--options', dest='options_file', required=False, help='path to the options file')
+    parser.add_argument('-pp', dest='pseudopotentials', required=False, help='dict of pseudopotentials for ASE')
+    parser.add_argument('--pp_dir', dest='pp_dir', required=False, help='path to folder with pseudopotentials')
+    parser.add_argument('-o', '--outdir', dest='outdir', required=False, help='path to the output folder')
+    parser.add_argument('--kspacing', dest='kspacing', default=KSPACING, required=False, help='Kspacing value')
+
+    if calc_type == 'opt' or calc_type == 'eos':
+        msg = 'fmax for relaxation'
+        parser.add_argument('-f', '--fmax', dest='fmax', type=float, default=F_MAX, required=False, help=msg)
+
+        msg = 'Number of steps for optimization'
+        parser.add_argument("--nsteps", dest="nsteps", default=N_STEPS, type=int, required=False, help=msg)
+
     elif calc_type == 'band':
-        parser.add_argument('--train',
-                            dest='is_training',
-                            action='store_true',
-                            help='whether calculation is made for the training of DFTB params from the band structure')
+        msg = 'whether calculation is made for the training of DFTB params from the band structure'
+        parser.add_argument('--train', dest='is_training', action='store_true', help=msg)
     return parser
 
 
-def get_args(args):
+def get_args(args) -> dict:
     calc_type = args.subcommand
 
     if args.config:
@@ -94,8 +64,7 @@ def get_args(args):
         args = vars(args)
 
     input = Path(args['input'])
-    assert input.exists(),\
-        f'Seems like path to the input file is wrong.\n It is {input}'
+    assert input.exists(), f'Seems like path to the input file is wrong.\n It is {input}'
     args['input'] = input
     structures = read(input, index=':')
     args['name'] = input.stem
@@ -111,15 +80,14 @@ def get_args(args):
     args['structures'] = structures
 
     if 'outdir' not in args or args['outdir'] is None:
-        outdir = Path.cwd()/f'{calc_type}_{input.stem}'
+        outdir = Path.cwd() / f'{calc_type}_{input.stem}'
     else:
         outdir = Path(args['outdir'])
     outdir.mkdir(parents=True, exist_ok=True)
     args['outdir'] = outdir
 
     options_file = Path(args['options'])
-    assert options_file.exists(),\
-        f"Seems like path to the options file is wrong.\n It is {options_file}"
+    assert options_file.exists(), f"Seems like path to the options file is wrong.\n It is {options_file}"
     # Read options from the file
     with open(options_file) as fp:
         data, _ = read_fortran_namelist(fp)
@@ -138,8 +106,7 @@ def get_args(args):
     pp_dir = Path(args['pp_dir'])
     if pp_dir.is_symlink():
         pp_dir = pp_dir.readlink()
-    assert pp_dir.is_dir(),\
-        'Seems like folder with pseudopotentials does not exist or wrong'
+    assert pp_dir.is_dir(), 'Seems like folder with pseudopotentials does not exist or wrong'
     pp_dir = pp_dir.resolve()
     args['pp_dir'] = pp_dir
 
