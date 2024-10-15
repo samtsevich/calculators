@@ -9,7 +9,7 @@ from ase.io.vasp import write_vasp
 from ase.neb import NEB
 from ase.optimize import BFGS, MDMin
 
-from common.dftb import get_args, get_calc_type_params
+from . import get_args, get_calc_type_params
 
 
 def run_neb_dftb(args: dict, calc_type: str):
@@ -32,24 +32,30 @@ def run_neb_dftb(args: dict, calc_type: str):
     # ? add 'stress'
     for i, structure in enumerate(structures):
         kpts = kptdensity2monkhorstpack(atoms=structure, kptdensity=args['kspacing'])
-        params.update({'label': f'out_{calc_type}_{name}_{i}',
-                       'kpts': kpts,})
+        params.update(
+            {
+                'label': f'out_{calc_type}_{name}_{i}',
+                'kpts': kpts,
+            }
+        )
         structure.calc = Dftb(directory=calc_fold, **params)
         e = structure.get_potential_energy()
 
     neb = NEB(images=structures, climb=True)
-    optimizer =BFGS(neb,
-                    alpha=10.,
-                    restart=str(outdir/'neb.pckl'),
-                    trajectory=str(outdir/'neb.traj'),
-                    logfile=str(outdir/'neb.log'))
+    optimizer = BFGS(
+        neb,
+        alpha=10.0,
+        restart=str(outdir / 'neb.pckl'),
+        trajectory=str(outdir / 'neb.traj'),
+        logfile=str(outdir / 'neb.log'),
+    )
     optimizer.run(fmax=F_MAX, steps=N_STEPS)
 
-    with open(outdir/'final_POSCARS', 'w') as fp_final_poscars:
+    with open(outdir / 'final_POSCARS', 'w') as fp_final_poscars:
         for structure in neb.images:
             write_vasp(fp_final_poscars, structure, vasp5=True, direct=True)
 
-    with Trajectory(outdir/'final.traj', 'w', properties=['energy', 'forces']) as traj:
+    with Trajectory(outdir / 'final.traj', 'w', properties=['energy', 'forces']) as traj:
         for structure in neb.images:
             traj.write(structure)
     print(f'Calculation: {calc_type} of {name} is done.')

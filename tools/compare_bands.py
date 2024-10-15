@@ -1,15 +1,15 @@
-from ase.io.espresso import get_valence_electrons
-from ase.io.jsonio import read_json
-from ase.spectrum.band_structure import BandStructure
-from pathlib import Path
-from scipy.spatial import distance_matrix
-
 import argparse
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
+from ase.io.jsonio import read_json
+from ase.spectrum.band_structure import BandStructure
+from matplotlib.pyplot import cm
+from scipy.spatial import distance_matrix
 
-
-from common import get_N_val_electrons, fix_fermi_level
+# from ..common import fix_fermi_level, get_N_val_electrons
+# from ..common.qe import read_valences
 
 
 def read_band_structure(filename):
@@ -30,7 +30,7 @@ def special_points_energies(band_structure: BandStructure) -> dict:
         dict: The energies of the special points, where the keys are the special points and values are the energies.
     """
     spe_kpts, kpts = band_structure.path.special_points, band_structure.path.kpts
-    energies = band_structure.energies[0]   # energies of the first spin
+    energies = band_structure.energies[0]  # energies of the first spin
 
     kpts_energies = {}
     for sp, vec in spe_kpts.items():
@@ -38,8 +38,7 @@ def special_points_energies(band_structure: BandStructure) -> dict:
             if np.allclose(vec, kpt, atol=1e-3):
                 kpts_energies[sp] = e
                 break
-    assert len(kpts_energies) == len(
-        spe_kpts), "The number of special points is not the same as the number of k-points"
+    assert len(kpts_energies) == len(spe_kpts), "The number of special points is not the same as the number of k-points"
     return kpts_energies
 
 
@@ -80,8 +79,7 @@ def decode_band2(bandstructure: BandStructure, n_val_e: int, n_cond_bands: int =
     cond_band_feature = []
     for i, (key, e) in enumerate(spp_e.items()):
         val_band_feature.extend([[i, en] for en in e[:n_val_e]])
-        cond_band_feature.extend([[i, en]
-                                 for en in e[n_val_e+1:n_val_e+n_cond_bands]])
+        cond_band_feature.extend([[i, en] for en in e[n_val_e + 1 : n_val_e + n_cond_bands]])
     val_band_feature = np.array(val_band_feature)
     cond_band_feature = np.array(cond_band_feature)
     val_x = distance_matrix(val_band_feature, val_band_feature)
@@ -91,65 +89,53 @@ def decode_band2(bandstructure: BandStructure, n_val_e: int, n_cond_bands: int =
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='plot several BSs on 1')
-    parser.add_argument('-i', '--input', nargs=2, type=str)
+    parser.add_argument('-i', '--input', nargs='*', type=str)
     parser.add_argument('-o', '--output', help='Write image to a file')
-    parser.add_argument('-r', '--range', nargs=2, default=['-3', '3'],
-                        metavar=('emin', 'emax'),
-                        help='Default: "-3.0 3.0" '
-                        '(in eV relative to Fermi level).')
+
+    msg = ('Default: "-3.0 3.0" ' '(in eV relative to Fermi level).',)
+    parser.add_argument('-r', '--range', nargs=2, default=['-3', '3'], metavar=('emin', 'emax'), help=msg)
     parser.add_argument('-e', '--eref', nargs=1, type=float, default=None)
 
     args = parser.parse_args()
 
     # set of band structures
     bss = []
+    labels = []
     for input_file in args.input:
-        assert Path(input_file).exists()
-        bss.append(read_band_structure(input_file))
+        bs_path = Path(input_file)
+        assert bs_path.exists()
+        bss.append(read_band_structure(bs_path))
+        labels.append(f'{bs_path.parent.stem}/{bs_path.stem}')
 
-    bs1, bs2 = bss
+    all_special_points = set()
+    for bs in bss:
+        all_special_points.update(bs.path.special_points.keys())
 
-    if args.eref is not None:
-        bs2._reference = args.eref[0]
+    for bs in bss:
+        msg = "The special points are not the same for selected BSs"
+        assert set(list(bs.path.special_points.keys())) == all_special_points, msg
 
-    bs1 = bs1.subtract_reference()
-    bs2 = bs2.subtract_reference()
-    assert bs1.path.special_points.keys() == bs1.path.special_points.keys(), "The special points are not the same for selected BSs"
+    color = iter(cm.rainbow(np.linspace(0, 1, len(bss))))
 
-    # print(f'Fermi level 1: {bs1.reference}')
-    # print(f'Fermi level 2: {bs2.reference}')
+    for label, bs in zip(labels, bss):
+        bs = bs.subtract_reference()
 
-    emin, emax = (float(e) for e in args.range)
-    fig = plt.gcf()
-    # fig.canvas.set_window_title(args.calculation)
-    ax = fig.gca()
-    # for bs in bss:
-    #     bs.plot(ax=ax,
-    #             emin=emin + bs.reference,
-    #             emax=emax + bs.reference)
+        emin, emax = (float(e) for e in args.range)
+        fig = plt.gcf()
+        # fig.canvas.set_window_title(args.calculation)
+        ax = fig.gca()
 
-    bs1.plot(ax=ax,
-             colors='r',
-             label=args.input[0],
-             emin=emin + bs1.reference,
-             emax=emax + bs1.reference)
+        c = next(color)
+        bs.plot(ax=ax, color=c, label=label, emin=emin + bs.reference, emax=emax + bs.reference)
 
-    bs2.plot(ax=ax,
-             colors='b',
-             linestyle='dashed',
-             label=args.input[1],
-             emin=emin + bs2.reference,
-             emax=emax + bs2.reference)
-
-    ax.legend(loc='upper center', bbox_to_anchor=(
-        0.5, 1.05), fancybox=True, shadow=True, ncol=5)
-    plt.xticks(fontsize = 20)
-    plt.yticks(fontsize = 20)
+    ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05), fancybox=True, shadow=True, ncol=5)
+    plt.xticks(fontsize=20)
+    plt.yticks(fontsize=20)
 
     if args.output is None:
         plt.show()
     else:
         output = Path(args.output)
         if output.is_dir():
-            output = output/f'c_{Path(args.input[0]).stem}.png'
+            output = output / f'c_{Path(args.input[0]).stem}.png'
         plt.savefig(output)

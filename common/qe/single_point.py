@@ -1,10 +1,11 @@
 #!/usr/bin/python3
 
 import argparse
-import numpy as np
 import os
+from pathlib import Path
+from shutil import copyfile
 
-
+import numpy as np
 from ase.atoms import Atoms
 from ase.calculators.espresso import Espresso
 from ase.eos import EquationOfState
@@ -12,11 +13,6 @@ from ase.io import read
 from ase.io.espresso import read_fortran_namelist
 from ase.io.trajectory import Trajectory, TrajectoryWriter
 from ase.units import kJ
-
-from pathlib import Path
-from shutil import copyfile
-
-KSPACING = 0.04
 
 
 def copy_calc_files(origin, dest):
@@ -34,7 +30,6 @@ if __name__ == '__main__':
     parser.add_argument('-o', dest='output', help='path to the output file with trajectory')
     args = parser.parse_args()
 
-
     pp = eval(args.pseudopotentials)
     assert Path(args.input).exists(), f'Seems like path to the input file is wrong.\n It is {Path(args.input)}'
     assert Path(args.options).exists(), f'Seems like path to the options file is wrong.\n It is {Path(args.options)}'
@@ -48,11 +43,9 @@ if __name__ == '__main__':
         if 'system' not in data:
             raise KeyError('Required section &SYSTEM not found.')
 
-    opt_calc = Espresso(input_data=data, pseudopotentials=pp,
-                        kspacing=KSPACING, directory=str(calc_fold))
+    opt_calc = Espresso(input_data=data, pseudopotentials=pp, kspacing=KSPACING, directory=str(calc_fold))
 
-
-    # Read data from the inputs 
+    # Read data from the inputs
     structures = Trajectory(input)
     # structures = [atoms] if atoms is list else atoms
 
@@ -80,4 +73,3 @@ if __name__ == '__main__':
         # copy_calc_files(calc_fold, calc_fold/'opt')
         print(f'Optimization of {input} is done.')
     traj.close()
-
