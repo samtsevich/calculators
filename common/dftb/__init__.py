@@ -15,6 +15,8 @@ FERMI_TEMP = 0.0001
 E_MIN = -20
 E_MAX = 25
 
+SCC_TOLERANCE = 1.0e-6
+
 
 def add_dftb_arguments(parser, calc_type):
     if calc_type == 'opt':
@@ -165,10 +167,20 @@ def get_calc_type_params(calc_type: str) -> dict:
 
     if calc_type == 'scf':
         params.update(common_scf_opt)
-        params.update({'Hamiltonian_ReadInitialCharges': 'No'})  # Static calculation
+        params.update(
+            {
+                'Hamiltonian_ReadInitialCharges': 'No',
+                'Hamiltonian_SCCTolerance': SCC_TOLERANCE,
+            }
+        )
     elif calc_type == 'opt' or calc_type == 'eos':
         params.update(common_scf_opt)
-        params.update({'Hamiltonian_ReadInitialCharges': 'Yes'})  # Static calculation
+        params.update(
+            {
+                'Hamiltonian_ReadInitialCharges': 'Yes',
+                'Hamiltonian_SCCTolerance': SCC_TOLERANCE,
+            }
+        )  # Static calculation
     elif calc_type == 'band':
         params.update(
             {
@@ -203,7 +215,7 @@ GENERAL_PARAMS = {
     'Hamiltonian_Mixer_MixingParameter': 0.1,
     # 'Hamiltonian_Dispersion' : 'LennardJones{Parameters = UFFParameters{}}',	## no dispersion
     # TODO
-    'Hamiltonian_SCCTolerance': 1.0e-6,
+    'Hamiltonian_SCCTolerance': SCC_TOLERANCE,
     # 'Hamiltonian_SCCTolerance': 1.0E-5,
     'Options_': '',
     'Options_WriteResultsTag': 'Yes',  # Default:No

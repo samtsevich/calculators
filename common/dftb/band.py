@@ -1,3 +1,4 @@
+import shutil
 from copy import copy
 from pathlib import Path
 from typing import Dict, List
@@ -45,6 +46,9 @@ def run_dftb_band(args: dict, calc_type: str):
     # ------------------------------------------------
     params = copy(args['dftb_params'])
     params.update(get_calc_type_params(calc_type='scf'))
+    assert params['Hamiltonian_SCCTolerance'] < 0.001
+    assert params['Hamiltonian_MaxSCCIterations'] > 10
+
     kpts = get_KPoints(kspacing=args['kspacing'], cell=structure.cell)
     # kpts = kptdensity2monkhorstpack(atoms=structure, kptdensity=args['kspacing'])
     params.update(
@@ -62,6 +66,7 @@ def run_dftb_band(args: dict, calc_type: str):
     structure.calc = scf_calc
     e = structure.get_potential_energy()
     fermi_level = scf_calc.get_fermi_level()
+    shutil.copy(calc_fold / 'dftb_in.hsd', calc_fold / f'dftb_in_scf_{name}.hsd')
 
     print(f'\tStep 1 for {name} done')
 
@@ -85,6 +90,7 @@ def run_dftb_band(args: dict, calc_type: str):
     band_calc = Dftb(atoms=structure, directory=calc_fold, **params)
     band_calc.calculate(structure)
     bs = get_band_structure(atoms=structure, calc=band_calc)
+    shutil.copy(calc_fold / 'dftb_in.hsd', calc_fold / f'dftb_in_band_{name}.hsd')
 
     print(f'Fermi level = {bs._reference}')
 
