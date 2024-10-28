@@ -41,6 +41,9 @@ def add_qe_arguments(parser, calc_type):
         msg = 'fmax for relaxation'
         parser.add_argument('-f', '--fmax', dest='fmax', type=float, default=F_MAX, required=False, help=msg)
 
+        msg = 'Whether we optimize the cell or not'
+        parser.add_argument("--full", dest="full_opt", action="store_true", default=False, help=msg)
+
         msg = 'Number of steps for optimization'
         parser.add_argument("--nsteps", dest="nsteps", default=N_STEPS, type=int, required=False, help=msg)
 

@@ -97,7 +97,8 @@ def get_args(args: dict, calc_type: str) -> dict:
         skfs_dir = skfs_dir.readlink()
     else:
         skfs_dir = skfs_dir.resolve()
-    assert skfs_dir.is_dir(), 'Please, check carefully path to the directory with .skf files'
+    msg = f'Please, check carefully path to the directory with .skf files\nNow it is {skfs_dir}'
+    assert skfs_dir.is_dir(), msg
     args['skfs_dir'] = skfs_dir
 
     if args['outdir'] is None:
@@ -169,7 +170,7 @@ def get_calc_type_params(calc_type: str) -> dict:
         params.update(common_scf_opt)
         params.update(
             {
-                'Hamiltonian_ReadInitialCharges': 'No',
+                'Hamiltonian_ReadInitialCharges': 'Yes',
                 'Hamiltonian_SCCTolerance': SCC_TOLERANCE,
             }
         )
