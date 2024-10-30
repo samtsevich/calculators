@@ -11,6 +11,8 @@ N_PROCESS = 1
 FERMI_TEMP = 0.0001
 
 
+MIXERS = ['Broyden', 'Andersen']
+
 # For band structure plotting
 E_MIN = -20
 E_MAX = 25
@@ -43,9 +45,10 @@ def add_dftb_arguments(parser, calc_type):
     msg = 'Number of processors'
     parser.add_argument('-np', dest='nproc', default=N_PROCESS, type=int, required=False, help=msg)
 
-    parser.add_argument(
-        '--kspacing', dest='kspacing', default=KSPACING, type=float, required=False, help='Kspacing value'
-    )
+    msg = 'Kspacing value'
+    parser.add_argument('--kspacing', dest='kspacing', default=KSPACING, type=float, required=False, help=msg)
+
+    parser.add_argument('-m', '--mixer', dest='mixer', required=False, default='Broyden', help='Name of the mixer')
 
     parser.add_argument('-d3', dest='d3', action='store_true', default=False, help='Whether use D3 dispersion or not')
 
@@ -101,6 +104,10 @@ def get_args(args: dict, calc_type: str) -> dict:
     assert skfs_dir.is_dir(), msg
     args['skfs_dir'] = skfs_dir
 
+    # check mixer
+    mixer = args['mixer']
+    assert mixer in MIXERS, f'Unknown mixer {mixer}'
+
     if args['outdir'] is None:
         outdir = Path.cwd() / f'{calc_type}_{name}'
     else:
@@ -109,6 +116,10 @@ def get_args(args: dict, calc_type: str) -> dict:
     args['outdir'] = outdir
 
     params = GENERAL_PARAMS.copy()
+
+    # update mixer
+    params.update({'Hamiltonian_Mixer_': mixer})
+
     additional_params = {
         'slako_dir': str(skfs_dir) + '/',
         'Hamiltonian_SlaterKosterFiles_Prefix': str(skfs_dir) + '/',
