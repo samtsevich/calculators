@@ -20,7 +20,6 @@ def qe_band(args):
     name = args['name']
     structures = args['structures']
 
-    options = args['options']
     pp = args['pseudopotentials']
     pp_dir = args['pp_dir']
     kspacing = args['kspacing']
@@ -75,6 +74,19 @@ def qe_band(args):
         bs = fix_fermi_level(bs, N_val_e).subtract_reference()
         bs.write(outdir / f'bs_{ID}.json')
         bs.plot(filename=outdir / f'bs_{ID}.png')
+
+        # DOS calculation
+        input_dos_file = outdir / f'{ID}.dos.in'
+        output_dos_file = outdir / f'{ID}.dos.out'
+        output_dos_data = outdir / f'{ID}_dos.dat'
+        with open(outdir / f'{ID}.dos.in', 'w') as f:
+            f.write(f"&DOS\n")
+            f.write(f"  prefix = '{ID}',\n")
+            f.write("outdir='./tmp/',\n")
+            f.write(f"fildos='{output_dos_data.name}',\n")
+            f.write('emin=-20.0,\n')
+            f.write('emax=20.0,\n')
+            f.write(f"/\n")
 
         print(f'Band structure of {ID} is calculated.')
         print('---------------------------')

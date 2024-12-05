@@ -11,7 +11,7 @@ N_PROCESS = 1
 FERMI_TEMP = 0.0001
 
 
-MIXERS = ['Broyden', 'Andersen']
+MIXERS = ['Broyden', 'Anderson']
 
 # For band structure plotting
 E_MIN = -20

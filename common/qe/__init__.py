@@ -30,7 +30,6 @@ def add_qe_arguments(parser, calc_type):
     msg = 'path to the input file written in POSCAR format'
     parser.add_argument('-i', '--input', dest='input', required=False, help=msg)
 
-    parser.add_argument('--fixed_idx', dest='fixed_idx', required=False, help='path to the file with fixed indices')
     parser.add_argument('-k', '--options', dest='options_file', required=False, help='path to the options file')
     parser.add_argument('-pp', dest='pseudopotentials', required=False, help='dict of pseudopotentials for ASE')
     parser.add_argument('--pp_dir', dest='pp_dir', required=False, help='path to folder with pseudopotentials')
@@ -72,14 +71,6 @@ def get_args(args) -> dict:
     structures = read(input, index=':')
     args['name'] = input.stem
 
-    # TODO check whether it is still actual
-    # Constraints
-    # fixed_idx = args['fixed_idx']
-    # if fixed_idx is not None:
-    #     with open(fixed_idx) as fp:
-    #         idx = list(map(int, fp.read().split()))
-    #         assert len(idx), 'Seems something wrong with idx of fixed atoms'
-    #         structure.set_constraint(FixAtoms(indices=idx))
     args['structures'] = structures
 
     if 'outdir' not in args or args['outdir'] is None:

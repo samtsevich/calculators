@@ -1,48 +1,59 @@
 import argparse
+from math import ceil
 from pathlib import Path
+from typing import Dict, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
 from ase.io.jsonio import read_json
-from ase.spectrum.band_structure import BandStructure
+from ase.spectrum.band_structure import BandStructure as BS
 from matplotlib.pyplot import cm
 from scipy.spatial import distance_matrix
 
 # from ..common import fix_fermi_level, get_N_val_electrons
 # from ..common.qe import read_valences
 
+FONT_SIZE = 20
+Y_AXIS_STEP = 2
+
 
 def read_band_structure(filename):
     bs = read_json(filename)
-    if not isinstance(bs, BandStructure):
+    if not isinstance(bs, BS):
         raise TypeError(f'Expected band structure, but file contains: {bs}')
     return bs
 
 
-def special_points_energies(band_structure: BandStructure) -> dict:
-    """Returns the energies of the special points in the band structure.
+def special_points_energies(band_structure: BS) -> Dict[str, list]:
+    '''
+    Extract the energies of the special points from the band structure.
+    '''
 
-    Args:
-        band_structure (BandStructure): The band structure.
-        nbands (int): number of band we want to extract from the band structure.
+    round = lambda x: np.mod(np.round(x, 6), 1)
 
-    Returns:
-        dict: The energies of the special points, where the keys are the special points and values are the energies.
-    """
-    spe_kpts, kpts = band_structure.path.special_points, band_structure.path.kpts
-    energies = band_structure.energies[0]  # energies of the first spin
+    special_pts = band_structure.path.special_points
+    sp_pts_names = [key for key in special_pts.keys() if len(key) == 1]
+    kpts = round(band_structure.path.kpts)
+    energies = band_structure.energies
 
-    kpts_energies = {}
-    for sp, vec in spe_kpts.items():
-        for kpt, e in zip(kpts, energies):
-            if np.allclose(vec, kpt, atol=1e-3):
-                kpts_energies[sp] = e
+    kpts_energies: Dict[str, list] = {}
+    for sp_pt_name, sp_pt_coord in special_pts.items():
+        # Skipping the special points with the same name,
+        # e.g. if we have `L` and `L1` on a band structure, we skip `L1`,
+        # because it is the same as `L`
+        if len(sp_pt_name) > 1:
+            continue
+
+        for i, kpt in enumerate(kpts):
+            if np.allclose(round(sp_pt_coord), kpt, atol=1e-3):
+                kpts_energies[sp_pt_name] = energies[:, i, :]
                 break
-    assert len(kpts_energies) == len(spe_kpts), "The number of special points is not the same as the number of k-points"
+    msg = 'The number of special points is not the same as the number of k-points'
+    assert len(kpts_energies) == len(sp_pts_names), msg
     return kpts_energies
 
 
-def decode_band(bandstructure: BandStructure, nbands: int):
+def decode_band(bandstructure: BS, nbands: int):
     """
     Decode the whole band structure into a distance matrix.
     """
@@ -59,7 +70,28 @@ def decode_band(bandstructure: BandStructure, nbands: int):
     return x
 
 
-def decode_band2(bandstructure: BandStructure, n_val_e: int, n_cond_bands: int = 2):
+def align_band_structure(band_structure: BS, N_val_e: int, fermi_label: Optional[str] = None, **kwargs) -> BS:
+    assert N_val_e > 0, 'Number of valence electrons should be larger than 0'
+
+    homo_id, lumo_id = ceil(N_val_e / 2) - 1, ceil(N_val_e / 2)
+    lumo_e = band_structure.energies[:, :, lumo_id]
+    homo_e = band_structure.energies[:, :, homo_id]
+
+    if fermi_label is not None:
+        assert fermi_label in band_structure.path.special_points
+        # align to chosen/arbitrary special point;
+        # e.g. for conductors: if the position of the fermi level in the bandpath is known, align to it
+        kpts_energies: Dict[str, list] = special_points_energies(band_structure)
+        # Aligning always by the spin up bands
+        band_structure._reference = kpts_energies[fermi_label][0, homo_id]
+    else:
+        # Aligning always by the spin up bands
+        band_structure._reference = np.max(homo_e[0])
+
+    return band_structure
+
+
+def decode_band2(bandstructure: BS, n_val_e: int, n_cond_bands: int = 2):
     """
     Decode the cunduction and valence bands separately.
 
@@ -94,9 +126,15 @@ if __name__ == '__main__':
 
     msg = ('Default: "-3.0 3.0" ' '(in eV relative to Fermi level).',)
     parser.add_argument('-r', '--range', nargs=2, default=['-3', '3'], metavar=('emin', 'emax'), help=msg)
+    parser.add_argument('-a', '--alignment', type=str, default=None)
+    parser.add_argument('-N', '--nvalence', nargs=2, type=int, default=None)
+    parser.add_argument('-f', '--font', type=int, default=FONT_SIZE)
+    parser.add_argument('-s', '--step', type=float, default=Y_AXIS_STEP)
     parser.add_argument('-e', '--eref', nargs=1, type=float, default=None)
 
     args = parser.parse_args()
+
+    plt.figure(figsize=(12, 8))
 
     # set of band structures
     bss = []
@@ -117,7 +155,19 @@ if __name__ == '__main__':
 
     color = iter(cm.rainbow(np.linspace(0, 1, len(bss))))
 
-    for label, bs in zip(labels, bss):
+    if args.alignment is not None:
+        msg = "Number of valence electrons should be provided for alignment"
+        assert args.nvalence is not None, msg
+
+    if args.nvalence is not None:
+        msg = "Number of valence electrons should be the same as the number of band structures"
+        assert len(args.nvalence) == len(args.input), msg
+
+    for i, (label, bs) in enumerate(zip(labels, bss)):
+        if args.alignment is not None:
+            N_val_e = args.nvalence[i]
+            bs = align_band_structure(bs, N_val_e, fermi_label=args.alignment)
+
         bs = bs.subtract_reference()
 
         emin, emax = (float(e) for e in args.range)
@@ -126,11 +176,13 @@ if __name__ == '__main__':
         ax = fig.gca()
 
         c = next(color)
-        bs.plot(ax=ax, color=c, label=label, emin=emin + bs.reference, emax=emax + bs.reference)
+        bs.plot(ax=ax, color=c, label=label, linewidth=3.0, emin=emin + bs.reference, emax=emax + bs.reference)
 
     ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05), fancybox=True, shadow=True, ncol=5)
-    plt.xticks(fontsize=20)
-    plt.yticks(fontsize=20)
+    ax.set_yticks(np.arange(emin, emax, args.step))
+    ax.yaxis.label.set_size(args.font)
+    plt.xticks(fontsize=args.font)
+    plt.yticks(fontsize=args.font)
 
     if args.output is None:
         plt.show()
