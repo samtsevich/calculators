@@ -58,6 +58,9 @@ def add_dftb_arguments(parser, calc_type):
     msg = 'Fermi Temperature for the filling'
     parser.add_argument("--fermi-temp", dest="fermi_temp", default=FERMI_TEMP, type=float, required=False, help=msg)
 
+    msg = 'Max angular momentum for elements (in dict format, like { "C": "p", "H": "s" })'
+    parser.add_argument("--max-l", dest="max_l", default=None, required=False, help=msg)
+
     if calc_type == 'opt' or calc_type == 'neb' or calc_type == 'eos':
         msg = 'F_MAX for optimization'
         parser.add_argument("--fmax", dest="fmax", default=F_MAX, type=float, required=False, help=msg)
@@ -119,6 +122,13 @@ def get_args(args: dict, calc_type: str) -> dict:
 
     # update mixer
     params.update({'Hamiltonian_Mixer_': mixer})
+
+    # update max angular momentum
+    if args['max_l'] is not None:
+        max_l = eval(args['max_l'])
+        for el, l in max_l.items():
+            assert l in ['s', 'p', 'd', 'f'], f'Unknown angular momentum {l}'
+            params.update({f'Hamiltonian_MaxAngularMomentum_{el}': l})
 
     additional_params = {
         'slako_dir': str(skfs_dir) + '/',
