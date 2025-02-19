@@ -36,7 +36,7 @@ def run_scf_qe(args: dict):
         )
 
         structure.set_constraint()
-        structure.set_calculator(scf_calc)
+        structure.calc = scf_calc
 
         # add rattling to the atomic positions
         # add_coords = 0.05 - 0.1 * np.random.rand(len(atoms), 3)

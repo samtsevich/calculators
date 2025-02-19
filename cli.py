@@ -12,13 +12,14 @@ from common.qe import add_qe_arguments
 from common.qe.band import qe_band
 from common.qe.eos import qe_eos
 from common.qe.opt import qe_opt
+from common.qe.pdos import qe_pdos
 from common.qe.scf import qe_scf
 
 # from common.vasp import add_vasp_arguments
 # from common.vasp.scf import vasp_scf
 # from common.vasp.band import vasp_band
 
-QE_CALC_TYPES = {'opt': qe_opt, 'scf': qe_scf, 'band': qe_band, 'eos': qe_eos}
+QE_CALC_TYPES = {'opt': qe_opt, 'scf': qe_scf, 'band': qe_band, 'eos': qe_eos, 'pdos': qe_pdos}
 
 DFTB_CALC_TYPES = {'opt': dftb_opt, 'scf': dftb_scf, 'band': dftb_band, 'eos': dftb_eos, 'neb': dftb_neb}
 

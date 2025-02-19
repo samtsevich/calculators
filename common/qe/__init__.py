@@ -19,6 +19,8 @@ def add_qe_arguments(parser, calc_type):
         description = 'ASE band structure calculation with QE'
     elif calc_type == 'eos':
         description = 'EOS with QE for structure'
+    elif calc_type == 'pdos':
+        description = 'PDOS with QE for structure'
     else:
         raise ValueError(f'Unknown type {calc_type}')
 
