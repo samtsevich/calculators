@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Dict, List
 
 import numpy as np
+import hsd
 from ase.atoms import Atoms
 from ase.calculators.calculator import kptdensity2monkhorstpack
 from ase.calculators.dftb import Dftb
@@ -58,6 +59,13 @@ def run_dftb_band(args: dict, calc_type: str):
         }
     )
 
+    # PDOS calculation
+    regions = []
+    for el in set(structure.get_chemical_symbols()):
+        regions.append({'Atoms': el, 'Label': f'dos_{el}', 'ShellResolved': 'Yes'})
+    pdos_params = {'Analysis_ProjectStates': f"{{\n{hsd.dump_string({'Region': regions})}}}"}
+    params.update(pdos_params)
+
     calc_fold = outdir
 
     write_vasp(calc_fold / f'a_{name}.vasp', structure, sort=True, vasp5=True, direct=True)
@@ -67,7 +75,6 @@ def run_dftb_band(args: dict, calc_type: str):
     e = structure.get_potential_energy()
     fermi_level = scf_calc.get_fermi_level()
     shutil.copy(calc_fold / 'dftb_in.hsd', calc_fold / f'dftb_in_scf_{name}.hsd')
-
     print(f'\tStep 1 for {name} done')
 
     # Step 2. Band structure calculation
@@ -86,6 +93,9 @@ def run_dftb_band(args: dict, calc_type: str):
 
     # Stupid ASE does not recognize k-points for band structures, when there is no 'path' key in the dict
     params.update({'kpts': {**path.todict(), 'path': ''}})
+
+    # for simplicity, delete the PDOS parameters
+    del params['Analysis_ProjectStates']
 
     band_calc = Dftb(atoms=structure, directory=calc_fold, **params)
     band_calc.calculate(structure)
