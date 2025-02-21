@@ -15,16 +15,18 @@ from common.qe.opt import qe_opt
 from common.qe.pdos import qe_pdos
 from common.qe.scf import qe_scf
 
-# from common.vasp import add_vasp_arguments
-# from common.vasp.scf import vasp_scf
-# from common.vasp.band import vasp_band
+from common.vasp import add_vasp_arguments
+from common.vasp.scf import vasp_scf
+from common.vasp.band import vasp_band
+from common.vasp.pdos import vasp_pdos
 
 QE_CALC_TYPES = {'opt': qe_opt, 'scf': qe_scf, 'band': qe_band, 'eos': qe_eos, 'pdos': qe_pdos}
 
 DFTB_CALC_TYPES = {'opt': dftb_opt, 'scf': dftb_scf, 'band': dftb_band, 'eos': dftb_eos, 'neb': dftb_neb}
 
-# VASP_CALC_TYPES = {'scf': vasp_scf,
-#                    'band': vasp_band}
+VASP_CALC_TYPES = {'scf': vasp_scf,
+                   'band': vasp_band,
+                   'pdos': vasp_pdos}
 
 
 def _precheck():
@@ -54,6 +56,14 @@ def main():
         qe_subparser = qe_subparsers.add_parser(calc_type)
         qe_subparser = add_qe_arguments(qe_subparser, calc_type)
         qe_subparser.set_defaults(func=calc_func)
+
+    # Create a subparser for the 'vasp' command
+    parser_vasp = subparsers.add_parser('vasp')
+    vasp_subparsers = parser_vasp.add_subparsers(dest='subcommand')
+    for calc_type, calc_func in VASP_CALC_TYPES.items():
+        vasp_subparser = vasp_subparsers.add_parser(calc_type)
+        vasp_subparser = add_vasp_arguments(vasp_subparser, calc_type)
+        vasp_subparser.set_defaults(func=calc_func)
 
     args = parser.parse_args()
     args.func(args)
