@@ -178,7 +178,14 @@ if __name__ == '__main__':
         c = next(color)
         bs.plot(ax=ax, color=c, label=label, linewidth=3.0, emin=emin + bs.reference, emax=emax + bs.reference)
 
-    ax.legend(loc='upper center', bbox_to_anchor=(0.5, 1.05), fancybox=True, shadow=True, ncol=5)
+    ax.legend(
+        loc='best',
+        # bbox_to_anchor=(0.5, 1.05),
+        fancybox=True,
+        shadow=True,
+        ncol=5,
+        prop={'size': args.font-5}
+    )
     ax.set_yticks(np.arange(emin, emax, args.step))
     ax.yaxis.label.set_size(args.font)
     plt.xticks(fontsize=args.font)

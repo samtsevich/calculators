@@ -7,6 +7,8 @@ from ase.io import read
 
 from .. import F_MAX, KSPACING, N_STEPS
 
+DEF_SIGMA = 0.2
+
 COMMON_VASP_PARAMS = {
     'xc': 'PBE',               # Exchange-correlation functional
     'prec': 'Accurate',        # Precision
@@ -22,7 +24,6 @@ COMMON_VASP_PARAMS = {
     'lcharg': True,            # Don't write CHGCAR
     'lwave': True,             # Don't write WAVECAR
     'potim': 0.05,             # Time step for ionic relaxation
-    'sigma': 0.05,             # Width of smearing in eV 
     'lreal': 'Auto',           # Use real-space projection for GPU acceleration
 }
 
@@ -51,7 +52,14 @@ def add_vasp_arguments(parser, calc_type):
     parser.add_argument('-i', '--input', dest='input', required=False, help=msg)
 
     parser.add_argument('-o', '--outdir', dest='outdir', required=False, help='path to the output folder')
-    parser.add_argument('--kspacing', dest='kspacing', default=KSPACING, required=False, help='Kspacing value')
+    msg = 'Kspacing value'
+    parser.add_argument('--kspacing', dest='kspacing', type=float, default=KSPACING, required=False, help=msg)
+
+    msg = 'Additional setups for the atoms in the structure'
+    parser.add_argument('-s', '--setups', dest='setup', type=str, default=None, required=False, help=msg)
+
+    msg = 'Sigma for smearing in eV'
+    parser.add_argument('-b', '--sigma', dest='sigma', type=float, default=DEF_SIGMA, required=False, help=msg)
 
     if calc_type == 'opt' or calc_type == 'eos':
         msg = 'fmax for relaxation'
@@ -100,7 +108,33 @@ def get_args(args) -> dict:
     if calc_type == 'opt':
         assert args['fmax'] > 0, 'Seems like your value for FMAX is not >0'
 
+    if args['setups'] is not None:
+        all_chemical_symbols = list(set([atom.symbol for structure in structures for atom in structure]))
+        for el in all_chemical_symbols:
+            assert el in chemical_symbols, f'Unknown element {el}'
+            assert el in args['setups'], f'No setup for {el}'
+
+    assert args['sigma'] > 0, 'Seems like your value for sigma is not >0'
+
     return args
+
+
+def get_basic_params(args) -> dict:
+    name = args['name']
+    sigma = args['sigma']
+    kspacing = args['kspacing']
+    general_params = {
+        'system': name,  # Job name
+        'kspacing': kspacing,  # k-point grid for SCF
+        'sigma': sigma,  # Smearing parameter
+    }
+    basic_params = COMMON_VASP_PARAMS.copy()
+    basic_params.update(general_params)
+
+    if args['setups'] is not None:
+        basic_params['setups'] = args['setups']
+
+    return basic_params
 
 
 def get_total_N_val_e(file: Path) -> int:

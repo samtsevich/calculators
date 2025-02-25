@@ -7,7 +7,7 @@ from ase.calculators.vasp import Vasp
 from ase.io.vasp import read_vasp_out, write_vasp
 
 from .. import fix_fermi_level
-from . import COMMON_VASP_PARAMS, get_args, get_total_N_val_e
+from . import get_basic_params, get_args, get_total_N_val_e
 
 
 def run_pdos_vasp(args: dict):
@@ -19,13 +19,9 @@ def run_pdos_vasp(args: dict):
     outdir = Path(args['outdir'])
     calc_fold = outdir
 
-    general_params = {
-        'system': name,  # Job name
-        'directory': calc_fold,  # Directory to run VASP
-        'kspacing': kspacing,  # k-point grid for SCF
-    }
-    scf_params = COMMON_VASP_PARAMS.copy()
-    scf_params.update(general_params)
+    scf_params = get_basic_params(args)
+    scf_params.update({'directory': calc_fold})
+
     scf_calc = Vasp(**scf_params)
 
     for i, structure in enumerate(structures):
@@ -48,8 +44,8 @@ def run_pdos_vasp(args: dict):
         nscf_params = scf_params.copy()
         nscf_params.update(
             {
+                'nbands': 2*N_val_e,    # Number of bands (here increased for PDOS)
                 'icharg': 11,           # Charge density from CHGCAR
-                'sigma': 0.2,           # (eV) Smearing parameter
                 'ibrion': -1,           # no ion relaxation
                 'lorbit': 11,           # This enables PDOS calculation
                 'nedos': 3000,          # Increase number of points in DOS
