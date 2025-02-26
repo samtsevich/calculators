@@ -12,6 +12,8 @@ get_N_val_electrons = lambda s: sum([atomic_data[el]['valence_number'] for el in
 N_STEPS = 1000
 F_MAX = 0.01
 
+# Default smearing value for DFT calculations in eV
+DEF_SMEARING = 0.2
 
 KSPACING = 0.04
 

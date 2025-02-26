@@ -13,7 +13,7 @@ from ase.spectrum.band_structure import BandStructure, get_band_structure
 from matplotlib import pyplot as plt
 
 from .. import fix_fermi_level, get_KPoints, get_N_val_electrons
-from . import get_args, get_calc_type_params
+from . import get_args, get_calc_type_params, DFTB_OUTFILES_TO_COPY
 
 N_KPOINTS = 200
 
@@ -74,7 +74,10 @@ def run_dftb_band(args: dict, calc_type: str):
     structure.calc = scf_calc
     e = structure.get_potential_energy()
     fermi_level = scf_calc.get_fermi_level()
-    shutil.copy(calc_fold / 'dftb_in.hsd', calc_fold / f'dftb_in_scf_{name}.hsd')
+    for filename in DFTB_OUTFILES_TO_COPY:
+        orig_file = calc_fold / filename
+        res_file = calc_fold / f'{Path(filename).stem}_scf{orig_file.suffix}'
+        shutil.copy(orig_file, res_file)
     print(f'\tStep 1 for {name} done')
 
     # Step 2. Band structure calculation
@@ -100,13 +103,17 @@ def run_dftb_band(args: dict, calc_type: str):
     band_calc = Dftb(atoms=structure, directory=calc_fold, **params)
     band_calc.calculate(structure)
     bs = get_band_structure(atoms=structure, calc=band_calc)
-    shutil.copy(calc_fold / 'dftb_in.hsd', calc_fold / f'dftb_in_band_{name}.hsd')
+    for filename in DFTB_OUTFILES_TO_COPY:
+        orig_file = calc_fold / filename
+        res_file = calc_fold / f'{Path(filename).stem}_band{orig_file.suffix}'
+        shutil.copy(orig_file, res_file)
 
-    print(f'Fermi level = {bs._reference}')
+    print(f'Fermi level = {fermi_level}')
+    bs._reference = fermi_level
 
     # Fix Fermi level
-    N_val_e = get_N_val_electrons(structure)
-    bs = fix_fermi_level(bs, N_val_e).subtract_reference()
+    # N_val_e = get_N_val_electrons(structure)
+    # bs = fix_fermi_level(bs, N_val_e).subtract_reference()
     bs.write(outdir / f'bs_{name}.json')
     bs.plot(filename=outdir / f'bs_{name}.png', emin=emin, emax=emax)
 

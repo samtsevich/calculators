@@ -32,6 +32,7 @@ def run_scf_vasp(args: dict):
 
         # 2. SCF #
         e = structure.get_potential_energy()
+        print('EFermi: ', structure.calc.get_fermi_level())
         write_vasp(outdir / f'final_{ID}.vasp', structure, sort=True, vasp5=True, direct=True)
 
         move(calc_fold / 'INCAR', outdir / f'INCAR.{ID}')

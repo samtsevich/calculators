@@ -6,7 +6,7 @@ from shutil import move
 import numpy as np
 from ase.calculators.calculator import Calculator
 from ase.calculators.espresso import Espresso
-from ase.spectrum.band_structure import get_band_structure
+from ase.spectrum.band_structure import BandStructure, get_band_structure
 
 from .. import fix_fermi_level
 from . import get_args, read_valences
@@ -30,6 +30,7 @@ def qe_band(args):
     data = args['data']
     data['calculation'] = 'scf'
     data['control'].update({'outdir': './tmp', 'prefix': str(name), 'verbosity': 'high'})
+    # data['system'].update({'nosym': True})
 
     calc: Calculator = Espresso(
         input_data=data, pseudopotentials=pp, pseudo_dir=str(pp_dir), kspacing=kspacing, directory=str(calc_fold)
@@ -47,6 +48,8 @@ def qe_band(args):
         valences = read_valences(calc_fold / calc.template.outputname)
         N_val_e = sum([valences[symbol] for symbol in structure.get_chemical_symbols()])
         print(f'Total N valence electrons: {N_val_e}')
+        print(f'Fermi level: {fermi_level}')
+        print('---------------------------')
 
         move(calc_fold / calc.template.inputname, outdir / f'{ID}.scf.in')
         move(calc_fold / calc.template.outputname, outdir / f'{ID}.scf.out')
@@ -70,23 +73,15 @@ def qe_band(args):
         move(calc_fold / calc.template.inputname, outdir / f'{ID}.band.in')
         move(calc_fold / calc.template.outputname, outdir / f'{ID}.band.out')
 
-        bs = get_band_structure(atoms=structure, calc=calc)
-        bs = fix_fermi_level(bs, N_val_e).subtract_reference()
-        bs.write(outdir / f'bs_{ID}.json')
-        bs.plot(filename=outdir / f'bs_{ID}.png')
+        bs: BandStructure = get_band_structure(atoms=structure, calc=calc)
+        bs._reference = fermi_level
 
-        # DOS calculation
-        input_dos_file = outdir / f'{ID}.dos.in'
-        output_dos_file = outdir / f'{ID}.dos.out'
-        output_dos_data = outdir / f'{ID}_dos.dat'
-        with open(outdir / f'{ID}.dos.in', 'w') as f:
-            f.write(f"&DOS\n")
-            f.write(f"  prefix = '{ID}',\n")
-            f.write("outdir='./tmp/',\n")
-            f.write(f"fildos='{output_dos_data.name}',\n")
-            f.write('emin=-20.0,\n')
-            f.write('emax=20.0,\n')
-            f.write(f"/\n")
+        # bs = fix_fermi_level(bs, N_val_e).subtract_reference()
+        bs.write(outdir / f'bs_{ID}.json')
+
+        # Subtraction of reference
+        bs = bs.subtract_reference()
+        bs.plot(filename=outdir / f'bs_{ID}.png')
 
         print(f'Band structure of {ID} is calculated.')
         print('---------------------------')

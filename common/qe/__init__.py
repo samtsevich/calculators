@@ -6,7 +6,7 @@ from ase.data import chemical_symbols
 from ase.io import read
 from ase.io.espresso import read_fortran_namelist
 
-from .. import F_MAX, KSPACING, N_STEPS
+from .. import F_MAX, KSPACING, N_STEPS, DEF_SMEARING
 
 
 def add_qe_arguments(parser, calc_type):
@@ -36,7 +36,7 @@ def add_qe_arguments(parser, calc_type):
     parser.add_argument('-pp', dest='pseudopotentials', required=False, help='dict of pseudopotentials for ASE')
     parser.add_argument('--pp_dir', dest='pp_dir', required=False, help='path to folder with pseudopotentials')
     parser.add_argument('-o', '--outdir', dest='outdir', required=False, help='path to the output folder')
-    parser.add_argument('--kspacing', dest='kspacing', default=KSPACING, required=False, help='Kspacing value')
+    parser.add_argument('--kspacing', dest='kspacing', type=float, default=KSPACING, required=False, help='Kspacing value')
 
     if calc_type == 'opt' or calc_type == 'eos':
         msg = 'fmax for relaxation'
@@ -48,6 +48,9 @@ def add_qe_arguments(parser, calc_type):
         msg = 'Number of steps for optimization'
         parser.add_argument("--nsteps", dest="nsteps", default=N_STEPS, type=int, required=False, help=msg)
 
+    elif calc_type == 'pdos':
+        msg = 'Smearing for PDOS calculation in eV'
+        parser.add_argument('--smearing', dest='smearing', type=float, default=DEF_SMEARING, required=False, help=msg)
     elif calc_type == 'band':
         msg = 'whether calculation is made for the training of DFTB params from the band structure'
         parser.add_argument('--train', dest='is_training', action='store_true', help=msg)

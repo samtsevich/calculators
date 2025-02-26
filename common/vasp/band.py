@@ -30,11 +30,14 @@ def run_band_vasp(args: dict):
         # 2. SCF #
         structure.calc = scf_calc
         e = structure.get_potential_energy()
+        fermi_level = scf_calc.get_fermi_level()
         write_vasp(outdir / f'final_{ID}.vasp', structure, sort=True, vasp5=True, direct=True)
 
         N_val_e: int = get_total_N_val_e(calc_fold / 'OUTCAR')
         assert N_val_e is not None
         print(f'Total N valence electrons: {N_val_e}')
+        print(f'Fermi level: {fermi_level}')
+        print('---------------------------')
 
         move(calc_fold / 'INCAR', outdir / f'INCAR.scf.{ID}')
         move(calc_fold / 'OUTCAR', outdir / f'OUTCAR.scf.{ID}')
@@ -48,7 +51,6 @@ def run_band_vasp(args: dict):
         nscf_params.update(
             {
                 'icharg': 11,
-                # 'kpts': path.kpts,
                 # # Stupid ASE does not recognize k-points for band structures, when there is no 'path' key in the dict
                 'kpts': {**path.todict(), 'path': ''},
             }
@@ -63,8 +65,11 @@ def run_band_vasp(args: dict):
 
         # bs = BandStructure(structure.calc.get_eigenvalues(), path.kpts, reference=structure.calc.get_fermi_level())
         bs: BandStructure = get_band_structure(structure, calc=nscf_calc)
-        bs: BandStructure = fix_fermi_level(bs, N_val_e).subtract_reference()
+        bs._reference = fermi_level
+        # bs: BandStructure = fix_fermi_level(bs, N_val_e).subtract_reference()
         bs.write(outdir / f'bs_{ID}.json')
+
+        bs = bs.subtract_reference()
         bs.plot(filename=outdir / f'bs_{ID}.png')
 
         print(f'Band structure of {ID} is calculated.')

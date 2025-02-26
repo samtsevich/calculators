@@ -19,6 +19,8 @@ E_MAX = 25
 
 SCC_TOLERANCE = 1.0e-6
 
+DFTB_OUTFILES_TO_COPY = ['dftb_in.hsd', 'band.out', 'geo_end.gen', 'charges.bin']
+
 
 def add_dftb_arguments(parser, calc_type):
     if calc_type == 'opt':

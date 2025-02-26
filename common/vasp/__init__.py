@@ -5,9 +5,9 @@ import yaml
 from ase.data import chemical_symbols
 from ase.io import read
 
-from .. import F_MAX, KSPACING, N_STEPS
+from .. import F_MAX, KSPACING, N_STEPS, DEF_SMEARING
 
-DEF_SIGMA = 0.2
+
 
 COMMON_VASP_PARAMS = {
     'xc': 'PBE',               # Exchange-correlation functional
@@ -15,6 +15,7 @@ COMMON_VASP_PARAMS = {
     'encut': 600,              # Plane-wave cutoff
     'ediff': 1E-8,             # Energy convergence criterion
     'nsw': 0,                  # Number of steps for ionic relaxation
+    'symprec': 0.01,           # Symmetry precision
     'ibrion': -1,              # Ion relaxation: no relaxation
     'isif': 3,                 # Stress tensor calculation
     'nelm': 200,               # Maximum number of electronic steps
@@ -58,8 +59,8 @@ def add_vasp_arguments(parser, calc_type):
     msg = 'Additional setups for the atoms in the structure'
     parser.add_argument('-s', '--setups', dest='setup', type=str, default=None, required=False, help=msg)
 
-    msg = 'Sigma for smearing in eV'
-    parser.add_argument('-b', '--sigma', dest='sigma', type=float, default=DEF_SIGMA, required=False, help=msg)
+    msg = 'Smearing for DFT calculations in eV'
+    parser.add_argument('-b', '--smearing', dest='smearing', type=float, default=DEF_SMEARING, required=False, help=msg)
 
     if calc_type == 'opt' or calc_type == 'eos':
         msg = 'fmax for relaxation'
@@ -114,19 +115,19 @@ def get_args(args) -> dict:
             assert el in chemical_symbols, f'Unknown element {el}'
             assert el in args['setups'], f'No setup for {el}'
 
-    assert args['sigma'] > 0, 'Seems like your value for sigma is not >0'
+    assert args['smearing'] > 0, 'Seems like your value for smearing is not >0'
 
     return args
 
 
 def get_basic_params(args) -> dict:
     name = args['name']
-    sigma = args['sigma']
+    smearing = args['smearing']
     kspacing = args['kspacing']
     general_params = {
-        'system': name,  # Job name
-        'kspacing': kspacing,  # k-point grid for SCF
-        'sigma': sigma,  # Smearing parameter
+        'system': name,         # Job name
+        'kspacing': kspacing,   # k-point grid for SCF
+        'sigma': smearing,      # Smearing parameter
     }
     basic_params = COMMON_VASP_PARAMS.copy()
     basic_params.update(general_params)

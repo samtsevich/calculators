@@ -8,6 +8,7 @@ import os
 from ase.calculators.calculator import Calculator
 from ase.calculators.espresso import Espresso
 from ase.spectrum.band_structure import get_band_structure
+from ase.units import Ry
 
 from .. import fix_fermi_level
 from . import get_args, read_valences
@@ -55,6 +56,8 @@ def qe_pdos(args):
         valences = read_valences(calc_fold / calc.template.outputname)
         N_val_e = sum([valences[symbol] for symbol in structure.get_chemical_symbols()])
         print(f'Total N valence electrons: {N_val_e}')
+        print(f'Fermi level: {fermi_level}')
+        print('---------------------------')
 
         move(calc_fold / calc.template.inputname, outdir / f'{ID}.scf.in')
         move(calc_fold / calc.template.outputname, outdir / f'{ID}.scf.out')
@@ -80,6 +83,8 @@ def qe_pdos(args):
         #      3. PDOS      #
         #####################
 
+        emin, emax = -25.0 + fermi_level, 20.0 + fermi_level
+        emin, emax = np.round(emin, 3), np.round(emax, 3)
         # PDOS calculation
         input_dos_file = outdir / f'{ID}.pdos.in'
         output_dos_file = outdir / f'{ID}.pdos.out'
@@ -87,10 +92,11 @@ def qe_pdos(args):
         with open(input_dos_file, 'w') as f:
             f.write(f"&PROJWFC\n")
             f.write(f"  prefix = '{str(name)}',\n")
+            f.write(f"degauss={args['smearing'] / Ry},\n")
             f.write(f"outdir='{qe_outdir}',\n")
             f.write(f"filpdos='{output_dos_data.name}',\n")
-            f.write('emin=-25.0,\n')
-            f.write('emax=20.0,\n')
+            f.write(f'emin={emin},\n')
+            f.write(f'emax={emax},\n')
             f.write(f"/\n")
 
         exec_command = f'projwfc.x < {input_dos_file.name} > {output_dos_file.name}'
