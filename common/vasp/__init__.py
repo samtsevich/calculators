@@ -62,6 +62,9 @@ def add_vasp_arguments(parser, calc_type):
     msg = 'Smearing for DFT calculations in eV'
     parser.add_argument('-b', '--smearing', dest='smearing', type=float, default=DEF_SMEARING, required=False, help=msg)
 
+    msg = 'Whether to perform spin-pol calculation'
+    parser.add_argument('--spin', dest='spin', action='store_true', default=False, help=msg)
+
     if calc_type == 'opt' or calc_type == 'eos':
         msg = 'fmax for relaxation'
         parser.add_argument('-f', '--fmax', dest='fmax', type=float, default=F_MAX, required=False, help=msg)
@@ -131,6 +134,9 @@ def get_basic_params(args) -> dict:
     }
     basic_params = COMMON_VASP_PARAMS.copy()
     basic_params.update(general_params)
+
+    if args['spin']:
+        basic_params['ispin'] = 2
 
     if args['setups'] is not None:
         basic_params['setups'] = args['setups']
