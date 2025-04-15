@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from ase.io.jsonio import read_json
 from ase.spectrum.band_structure import BandStructure as BS
+from matplotlib import ticker
 from matplotlib.pyplot import cm
 from scipy.spatial import distance_matrix
 
@@ -17,17 +18,31 @@ FONT_SIZE = 20
 Y_AXIS_STEP = 2
 
 
+class ZeroCenteredLocator(ticker.Locator):
+    def __init__(self, step, emin, emax):
+        self.step = step
+        assert emin < emax, "emin and emax should be negative and positive, respectively"
+        self.emin = emin
+        self.emax = emax
+
+    def __call__(self):
+        vmin, vmax = self.emin, self.emax
+        positive_ticks = np.arange(0, vmax + self.step, self.step)
+        negative_ticks = np.arange(-self.step, vmin - self.step, -self.step)
+        return np.sort(np.unique(np.concatenate([negative_ticks, positive_ticks])))
+
+
 def read_band_structure(filename):
     bs = read_json(filename)
     if not isinstance(bs, BS):
-        raise TypeError(f'Expected band structure, but file contains: {bs}')
+        raise TypeError(f"Expected band structure, but file contains: {bs}")
     return bs
 
 
 def special_points_energies(band_structure: BS) -> Dict[str, list]:
-    '''
+    """
     Extract the energies of the special points from the band structure.
-    '''
+    """
 
     round = lambda x: np.mod(np.round(x, 6), 1)
 
@@ -48,7 +63,7 @@ def special_points_energies(band_structure: BS) -> Dict[str, list]:
             if np.allclose(round(sp_pt_coord), kpt, atol=1e-3):
                 kpts_energies[sp_pt_name] = energies[:, i, :]
                 break
-    msg = 'The number of special points is not the same as the number of k-points'
+    msg = "The number of special points is not the same as the number of k-points"
     assert len(kpts_energies) == len(sp_pts_names), msg
     return kpts_energies
 
@@ -71,7 +86,7 @@ def decode_band(bandstructure: BS, nbands: int):
 
 
 def align_band_structure(band_structure: BS, N_val_e: int, fermi_label: Optional[str] = None, **kwargs) -> BS:
-    assert N_val_e > 0, 'Number of valence electrons should be larger than 0'
+    assert N_val_e > 0, "Number of valence electrons should be larger than 0"
 
     homo_id, lumo_id = ceil(N_val_e / 2) - 1, ceil(N_val_e / 2)
     lumo_e = band_structure.energies[:, :, lumo_id]
@@ -119,23 +134,32 @@ def decode_band2(bandstructure: BS, n_val_e: int, n_cond_bands: int = 2):
     return val_x, cond_x
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='plot several BSs on one')
-    parser.add_argument('-i', '--input', nargs='*', type=str)
-    parser.add_argument('-o', '--output', help='Write image to a file')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="plot several BSs on one")
+    parser.add_argument("-i", "--input", nargs="*", type=str)
+    parser.add_argument("-o", "--output", help="Write image to a file")
 
-    msg = 'Default: "-3.0 3.0" ' '(in eV relative to Fermi level).'
-    parser.add_argument('-r', '--range', nargs=2, default=['-3', '3'], metavar=('emin', 'emax'), help=msg)
-    parser.add_argument('-a', '--alignment', type=str, default=None)
-    parser.add_argument('-N', '--nvalence', nargs='*', type=int, default=None)
-    parser.add_argument('-f', '--font', type=int, default=FONT_SIZE)
-    parser.add_argument('-s', '--step', type=float, default=Y_AXIS_STEP)
-    parser.add_argument('-e', '--eref', type=float, default=None)
-    parser.add_argument('-l', '--label', nargs='*', type=str, default=None, required=False)
+    msg = 'Default: "-3.0 3.0" (in eV relative to Fermi level).'
+    parser.add_argument(
+        "-r",
+        "--range",
+        nargs=2,
+        default=["-3", "3"],
+        metavar=("emin", "emax"),
+        help=msg,
+    )
+    parser.add_argument("-a", "--alignment", type=str, default=None)
+    parser.add_argument("-N", "--nvalence", nargs="*", type=int, default=None)
+    parser.add_argument("-f", "--font", type=int, default=FONT_SIZE)
+    parser.add_argument("-s", "--step", type=float, default=Y_AXIS_STEP)
+    parser.add_argument("-e", "--eref", type=float, default=None)
+    parser.add_argument("-l", "--label", nargs="*", type=str, default=None, required=False)
 
     args = parser.parse_args()
 
-    plt.figure(figsize=(12, 8))
+    # !NOTE: box lines thickness
+    plt.rc("axes", linewidth=4)
+    fig = plt.figure(figsize=(12, 8))
 
     # set of band structures
     bss = []
@@ -144,7 +168,7 @@ if __name__ == '__main__':
         bs_path = Path(input_file)
         assert bs_path.exists()
         bss.append(read_band_structure(bs_path))
-        labels.append(f'{bs_path.parent.stem}/{bs_path.stem}')
+        labels.append(f"{bs_path.parent.stem}/{bs_path.stem}")
 
     if args.label is not None:
         msg = "Number of labels should be the same as the number of band structures"
@@ -159,7 +183,14 @@ if __name__ == '__main__':
         msg = "The special points are not the same for selected BSs"
         assert set(list(bs.path.special_points.keys())) == all_special_points, msg
 
-    color = iter(cm.rainbow(np.linspace(0, 1, len(bss))))
+    if len(bss) == 2:
+        color = iter(["red", "blue"])
+    elif len(bss) == 3:
+        # color = iter(["red", "blue", "green"])
+        # color = iter(["teal", "mediumvioletred", "gold"])
+        color = iter(["red", "blue", "#5e0034"])
+    else:
+        color = iter(cm.rainbow(np.linspace(0, 1, len(bss))))
 
     if args.alignment is not None:
         msg = "Number of valence electrons should be provided for alignment"
@@ -183,37 +214,65 @@ if __name__ == '__main__':
 
         c = next(color)
         if bs.energies.shape[0] == 1:
-            bs.plot(ax=ax, color=c, label=label, linewidth=3.0, emin=emin + bs.reference, emax=emax + bs.reference)
+            bs.plot(
+                ax=ax,
+                color=c,
+                label=label,
+                linewidth=3.0,
+                emin=emin + bs.reference,
+                emax=emax + bs.reference,
+            )
             # bs1.plot(color='blue', label='DFT', **common_params)
             # bs2.plot(color='red', label='DFTB', **common_params)
         elif bs.energies.shape[0] == 2:
-            bs.plot(ax=ax, color=c, label=label + 'spin up', spin=0, linewidth=3.0, emin=emin + bs.reference, emax=emax + bs.reference)
-            bs.plot(ax=ax, color=c, label=label + 'spin down', linestyle='--', spin=1, linewidth=3.0, emin=emin + bs.reference, emax=emax + bs.reference)
+            bs.plot(
+                ax=ax,
+                color=c,
+                label=label + "spin up",
+                spin=0,
+                linewidth=3.0,
+                emin=emin + bs.reference,
+                emax=emax + bs.reference,
+            )
+            bs.plot(
+                ax=ax,
+                color=c,
+                label=label + "spin down",
+                linestyle="--",
+                spin=1,
+                linewidth=3.0,
+                emin=emin + bs.reference,
+                emax=emax + bs.reference,
+            )
             # bs1.plot(color='blue', label='DFT spin up', spin=0, **common_params)
             # bs1.plot(color='blue', label='DFT spin down', linestyle='--', spin=1, **common_params)
             # bs2.plot(color='red', label='DFTB spin up', spin=0, **common_params)
             # bs2.plot(color='red', label='DFTB spin down', linestyle='--', spin=1, **common_params)
 
-
-    ax.legend(
-        loc='best',
+    fig.legend(
+        loc="lower right",
+        bbox_to_anchor=(0.91, 0.1),
         fancybox=True,
         shadow=True,
         ncol=5,
-        prop={'size': args.font-5}
+        prop={"size": args.font - 8},
     )
 
-    ax.set_yticks(np.arange(emin, emax, args.step))
+    # ax.set_yticks(np.arange(emin, emax, ))
+
+    ax.yaxis.set_major_locator(ZeroCenteredLocator(step=args.step, emin=emin, emax=emax))
+    ax.tick_params(axis='both', width=4, color='k', length=8)  # Affects tick lines
+
     ax.yaxis.label.set_size(args.font)
     plt.xticks(fontsize=args.font)
     plt.yticks(fontsize=args.font)
 
-    plt.legend('',frameon=False)
+    plt.legend("", frameon=False)
 
     if args.output is None:
         plt.show()
     else:
         output = Path(args.output)
         if output.is_dir():
-            output = output / f'c_{Path(args.input[0]).stem}.png'
+            output = output / f"c_{Path(args.input[0]).stem}.png"
         plt.savefig(output, transparent=True)
