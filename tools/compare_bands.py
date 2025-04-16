@@ -184,11 +184,11 @@ if __name__ == "__main__":
         assert set(list(bs.path.special_points.keys())) == all_special_points, msg
 
     if len(bss) == 2:
-        color = iter(["red", "blue"])
+        color = iter(["blue", "red"])
     elif len(bss) == 3:
         # color = iter(["red", "blue", "green"])
         # color = iter(["teal", "mediumvioletred", "gold"])
-        color = iter(["red", "blue", "#5e0034"])
+        color = iter(["blue", "red", "#5e0034"])
     else:
         color = iter(cm.rainbow(np.linspace(0, 1, len(bss))))
 
@@ -228,7 +228,7 @@ if __name__ == "__main__":
             bs.plot(
                 ax=ax,
                 color=c,
-                label=label + "spin up",
+                label=label + " spin up",
                 spin=0,
                 linewidth=3.0,
                 emin=emin + bs.reference,
@@ -237,7 +237,7 @@ if __name__ == "__main__":
             bs.plot(
                 ax=ax,
                 color=c,
-                label=label + "spin down",
+                label=label + " spin down",
                 linestyle="--",
                 spin=1,
                 linewidth=3.0,
@@ -267,7 +267,7 @@ if __name__ == "__main__":
     plt.xticks(fontsize=args.font)
     plt.yticks(fontsize=args.font)
 
-    plt.legend("", frameon=False)
+    plt.legend("", ncol=1, frameon=False)
 
     if args.output is None:
         plt.show()
