@@ -39,7 +39,7 @@ def _create_lazy_callable(calculator, subcommand):
             elif subcommand == 'neb':
                 from common.dftb.neb import dftb_neb
                 return dftb_neb(args)
-        
+
         elif calculator == 'mace':
             if subcommand == 'opt':
                 from common.mace.opt import mace_opt
@@ -63,7 +63,7 @@ def _create_lazy_callable(calculator, subcommand):
                 return vasp_pdos(args)
 
         raise ValueError(f"Unknown calculator '{calculator}' or subcommand '{subcommand}'")
-    
+
     return lazy_wrapper
 
 

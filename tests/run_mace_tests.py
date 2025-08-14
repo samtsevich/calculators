@@ -13,7 +13,7 @@ def run_tests():
     """Run all calculator tests."""
     print("Running Calculator Unit Tests")
     print("=" * 50)
-    
+
     # Test categories to run
     test_categories = [
         ("MACE Argument Parsing", "tests/test_mace_arguments.py::TestAddMaceArguments"),
@@ -23,19 +23,19 @@ def run_tests():
         ("VASP Calculator Tests", "tests/test_vasp_calculator.py::TestVASPArgumentParsing"),
         ("Cross-Calculator Tests", "tests/test_all_calculators.py::TestCalculatorArgumentParsing"),
     ]
-    
+
     total_passed = 0
     total_failed = 0
-    
+
     for category_name, test_path in test_categories:
         print(f"\n{category_name}:")
         print("-" * len(category_name))
-        
+
         try:
             result = subprocess.run([
                 sys.executable, "-m", "pytest", test_path, "-v", "--tb=short"
             ], capture_output=True, text=True, timeout=60)
-            
+
             if result.returncode == 0:
                 # Count passed tests from output
                 lines = result.stdout.split('\n')
@@ -54,14 +54,14 @@ def run_tests():
                 print(f"❌ Some tests failed")
                 print(result.stdout)
                 total_failed += 1
-                
+
         except subprocess.TimeoutExpired:
             print(f"❌ Tests timed out")
             total_failed += 1
         except Exception as e:
             print(f"❌ Error running tests: {e}")
             total_failed += 1
-    
+
     print(f"\n{'='*50}")
     print(f"Test Summary:")
     print(f"✅ Total tests passed: {total_passed}")
@@ -69,7 +69,7 @@ def run_tests():
         print(f"❌ Test categories with failures: {total_failed}")
     else:
         print("🎉 All calculator test categories passed!")
-    
+
     return total_failed == 0
 
 

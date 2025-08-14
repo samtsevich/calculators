@@ -13,7 +13,7 @@ def run_tests():
     """Run all calculator tests."""
     print("Running All Calculator Unit Tests")
     print("=" * 60)
-    
+
     # Test categories to run
     test_categories = [
         ("MACE Argument Parsing", "tests/test_mace_arguments.py::TestAddMaceArguments"),
@@ -25,20 +25,20 @@ def run_tests():
         ("VASP Argument Parsing", "tests/test_vasp_calculator.py::TestVASPArgumentParsing"),
         ("VASP Validation", "tests/test_vasp_calculator.py::TestVASPArgumentValidation"),
     ]
-    
+
     total_passed = 0
     total_failed = 0
     failed_categories = []
-    
+
     for category_name, test_path in test_categories:
         print(f"\n{category_name}:")
         print("-" * len(category_name))
-        
+
         try:
             result = subprocess.run([
                 sys.executable, "-m", "pytest", test_path, "-v", "--tb=short", "-q"
             ], capture_output=True, text=True, timeout=120)
-            
+
             if result.returncode == 0:
                 # Count passed tests from output
                 lines = result.stdout.split('\n')
@@ -70,7 +70,7 @@ def run_tests():
                     print("STDERR:", result.stderr[-500:])  # Last 500 chars
                 total_failed += 1
                 failed_categories.append(category_name)
-                
+
         except subprocess.TimeoutExpired:
             print(f"❌ Tests timed out")
             total_failed += 1
@@ -79,7 +79,7 @@ def run_tests():
             print(f"❌ Error running tests: {e}")
             total_failed += 1
             failed_categories.append(category_name)
-    
+
     print(f"\n{'='*60}")
     print(f"Test Summary:")
     print(f"✅ Total tests passed: {total_passed}")
@@ -88,7 +88,7 @@ def run_tests():
         print(f"   Failed: {', '.join(failed_categories)}")
     else:
         print("🎉 All test categories passed!")
-    
+
     return total_failed == 0
 
 
@@ -96,23 +96,23 @@ def run_quick_test():
     """Run a quick subset of tests to verify basic functionality."""
     print("Running Quick Calculator Tests")
     print("=" * 40)
-    
+
     quick_tests = [
         ("MACE Core", "tests/test_mace_simple.py::TestMaceWrapperFunctions::test_mace_scf_wrapper_validation"),
         ("QE Args", "tests/test_qe_calculator.py::TestQEArgumentParsing::test_add_qe_arguments_scf"),
         ("DFTB Args", "tests/test_dftb_calculator.py::TestDFTBArgumentParsing::test_add_dftb_arguments_scf"),
         ("VASP Args", "tests/test_vasp_calculator.py::TestVASPArgumentParsing::test_add_vasp_arguments_scf"),
     ]
-    
+
     passed = 0
     failed = 0
-    
+
     for name, test_path in quick_tests:
         try:
             result = subprocess.run([
                 sys.executable, "-m", "pytest", test_path, "-v", "-q"
             ], capture_output=True, text=True, timeout=30)
-            
+
             if result.returncode == 0:
                 print(f"✅ {name}")
                 passed += 1
@@ -122,7 +122,7 @@ def run_quick_test():
         except Exception as e:
             print(f"❌ {name} - Error: {e}")
             failed += 1
-    
+
     print(f"\nQuick Test Results: {passed} passed, {failed} failed")
     return failed == 0
 
@@ -132,5 +132,5 @@ if __name__ == "__main__":
         success = run_quick_test()
     else:
         success = run_tests()
-    
+
     sys.exit(0 if success else 1)

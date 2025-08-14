@@ -259,15 +259,6 @@ def validate_mace_model_file(model_path: Path):
             # MACE .model files are typically PyTorch state dicts
             state_dict = torch.load(model_path, map_location="cpu")
 
-            # Check if it looks like a MACE model by looking for expected keys
-            expected_keys = ["model_state_dict", "model"]
-            if not any(key in state_dict for key in expected_keys):
-                # Try to load as direct state dict
-                if not isinstance(state_dict, dict):
-                    raise ValueError(
-                        "Model file does not contain a valid state dictionary"
-                    )
-
         elif model_path.suffix == ".pth":
             # PyTorch model files
             torch.load(model_path, map_location="cpu")
