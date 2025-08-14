@@ -8,6 +8,10 @@ from common.dftb.eos import dftb_eos
 from common.dftb.neb import dftb_neb
 from common.dftb.opt import dftb_opt
 from common.dftb.scf import dftb_scf
+from common.mace import add_mace_arguments
+from common.mace.eos import mace_eos
+from common.mace.opt import mace_opt
+from common.mace.scf import mace_scf
 from common.qe import add_qe_arguments
 from common.qe.band import qe_band
 from common.qe.eos import qe_eos
@@ -23,6 +27,8 @@ from common.vasp.pdos import vasp_pdos
 QE_CALC_TYPES = {'opt': qe_opt, 'scf': qe_scf, 'band': qe_band, 'eos': qe_eos, 'pdos': qe_pdos}
 
 DFTB_CALC_TYPES = {'opt': dftb_opt, 'scf': dftb_scf, 'band': dftb_band, 'eos': dftb_eos, 'neb': dftb_neb}
+
+MACE_CALC_TYPES = {'opt': mace_opt, 'scf': mace_scf, 'eos': mace_eos}
 
 VASP_CALC_TYPES = {'scf': vasp_scf,
                    'band': vasp_band,
@@ -48,6 +54,14 @@ def main():
         dftb_subparser = dftb_subparsers.add_parser(calc_type)
         dftb_subparser = add_dftb_arguments(dftb_subparser, calc_type)
         dftb_subparser.set_defaults(func=calc_func)
+
+    # Create a subparser for the 'mace' command
+    parser_mace = subparsers.add_parser('mace')
+    mace_subparsers = parser_mace.add_subparsers(dest='subcommand')
+    for calc_type, calc_func in MACE_CALC_TYPES.items():
+        mace_subparser = mace_subparsers.add_parser(calc_type)
+        mace_subparser = add_mace_arguments(mace_subparser, calc_type)
+        mace_subparser.set_defaults(func=calc_func)
 
     # Create a subparser for the 'qe' command
     parser_qe = subparsers.add_parser('qe')
