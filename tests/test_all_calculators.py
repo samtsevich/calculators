@@ -216,6 +216,7 @@ Direct
             mock_args.subcommand = 'scf'
             mock_args.config = None
             mock_args.input = str(self.temp_path / 'nonexistent.vasp')
+            mock_args.pseudopotentials = "{}"  # QE expects this to be a string that can be evaluated
             
             with pytest.raises(AssertionError):
                 get_args(mock_args)
@@ -428,10 +429,10 @@ class TestCalculatorErrorHandling:
         
         # Test DFTB calculation type validation
         try:
-            from common.dftb.scf import run_scf_dftb
+            from common.dftb.scf import run_dftb_scf
             
             with pytest.raises(AssertionError, match="This function is only for SCF calculation"):
-                run_scf_dftb({}, 'opt')
+                run_dftb_scf({}, 'opt')
         except ImportError:
             pytest.skip("DFTB SCF module not available")
 

@@ -10,29 +10,42 @@ from ase.io.vasp import write_vasp
 from . import get_args
 
 
-def run_scf_qe(args: dict):
-    name = args['name']
-    structures = args['structures']
+def run_qe_scf(args: dict):
+    name = args["name"]
+    structures = args["structures"]
 
-    pp = args['pseudopotentials']
-    pp_dir = args['pp_dir']
-    kspacing = args['kspacing']
+    pp = args["pseudopotentials"]
+    pp_dir = args["pp_dir"]
+    kspacing = args["kspacing"]
 
-    outdir = Path(args['outdir'])
+    outdir = Path(args["outdir"])
     calc_fold = outdir
 
-    data = args['data']
-    data['control'].update({'calculation': 'scf', 'outdir': './tmp', 'verbosity': 'high', 'wf_collect': True})
+    data = args["data"]
+    data["control"].update(
+        {
+            "calculation": "scf",
+            "outdir": "./tmp",
+            "verbosity": "high",
+            "wf_collect": True,
+        }
+    )
 
-    traj = Trajectory(outdir / f'traj_{name}.traj', 'w', properties=['energy', 'forces'])
+    traj = Trajectory(
+        outdir / f"traj_{name}.traj", "w", properties=["energy", "forces"]
+    )
 
     for i, structure in enumerate(structures):
-        ID = f'{name}_{i}'
+        ID = f"{name}_{i}"
 
-        data['control']['prefix'] = f'{ID}.scf'
+        data["control"]["prefix"] = f"{ID}.scf"
 
         scf_calc = Espresso(
-            input_data=data, pseudopotentials=pp, pseudo_dir=str(pp_dir), kspacing=kspacing, directory=str(calc_fold)
+            input_data=data,
+            pseudopotentials=pp,
+            pseudo_dir=str(pp_dir),
+            kspacing=kspacing,
+            directory=str(calc_fold),
         )
 
         structure.set_constraint()
@@ -50,20 +63,22 @@ def run_scf_qe(args: dict):
 
         # 2. SCF #
         e = structure.get_potential_energy()
-        write_vasp(outdir / f'final_{ID}.vasp', structure, sort=True, vasp5=True, direct=True)
+        write_vasp(
+            outdir / f"final_{ID}.vasp", structure, sort=True, vasp5=True, direct=True
+        )
 
-        move(calc_fold / scf_calc.template.inputname, outdir / f'{ID}.scf.in')
-        move(calc_fold / scf_calc.template.outputname, outdir / f'{ID}.scf.out')
+        move(calc_fold / scf_calc.template.inputname, outdir / f"{ID}.scf.in")
+        move(calc_fold / scf_calc.template.outputname, outdir / f"{ID}.scf.out")
 
         traj.write(structure)
 
-        print(f'SCF of {ID} is done.')
+        print(f"SCF of {ID} is done.")
 
     traj.close()
 
 
 def qe_scf(args):
-    assert args.command == 'qe', 'This function is only for QE'
+    assert args.command == "qe", "This function is only for QE"
     args: dict = get_args(args)
 
-    run_scf_qe(args)
+    run_qe_scf(args)

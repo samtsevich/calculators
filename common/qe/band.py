@@ -3,85 +3,99 @@
 from pathlib import Path
 from shutil import move
 
-import numpy as np
 from ase.calculators.calculator import Calculator
 from ase.calculators.espresso import Espresso
 from ase.spectrum.band_structure import BandStructure, get_band_structure
 
-from .. import fix_fermi_level
 from . import get_args, read_valences
 
 
-def qe_band(args):
-    print('---------------------------')
-    calc_type = args.subcommand
-    args = get_args(args)
+def run_qe_band(args: dict):
+    name = args["name"]
+    structures = args["structures"]
 
-    name = args['name']
-    structures = args['structures']
+    pp = args["pseudopotentials"]
+    pp_dir = args["pp_dir"]
+    kspacing = args["kspacing"]
 
-    pp = args['pseudopotentials']
-    pp_dir = args['pp_dir']
-    kspacing = args['kspacing']
-
-    outdir = Path(args['outdir'])
+    outdir = Path(args["outdir"])
     calc_fold = outdir
 
-    data = args['data']
-    data['calculation'] = 'scf'
-    data['control'].update({'outdir': './tmp', 'prefix': str(name), 'verbosity': 'high'})
+    data = args["data"]
+    data["calculation"] = "scf"
+    data["control"].update(
+        {"outdir": "./tmp", "prefix": str(name), "verbosity": "high"}
+    )
     # data['system'].update({'nosym': True})
 
     calc: Calculator = Espresso(
-        input_data=data, pseudopotentials=pp, pseudo_dir=str(pp_dir), kspacing=kspacing, directory=str(calc_fold)
+        input_data=data,
+        pseudopotentials=pp,
+        pseudo_dir=str(pp_dir),
+        kspacing=kspacing,
+        directory=str(calc_fold),
     )
 
     for i, structure in enumerate(structures):
-        ID = f'{name}_{i}'
+        ID = f"{name}_{i}"
 
         # SCF #
         structure.calc = calc
         e = structure.get_potential_energy()
         fermi_level = calc.get_fermi_level()
-        print('Step 1. SCF calculation is done')
+        print("Step 1. SCF calculation is done")
 
         valences = read_valences(calc_fold / calc.template.outputname)
         N_val_e = sum([valences[symbol] for symbol in structure.get_chemical_symbols()])
-        print(f'Total N valence electrons: {N_val_e}')
-        print(f'Fermi level: {fermi_level}')
-        print('---------------------------')
+        print(f"Total N valence electrons: {N_val_e}")
+        print(f"Fermi level: {fermi_level}")
+        print("---------------------------")
 
-        move(calc_fold / calc.template.inputname, outdir / f'{ID}.scf.in')
-        move(calc_fold / calc.template.outputname, outdir / f'{ID}.scf.out')
+        move(calc_fold / calc.template.inputname, outdir / f"{ID}.scf.in")
+        move(calc_fold / calc.template.outputname, outdir / f"{ID}.scf.out")
 
         # BAND STRUCTURE #
 
         # Update inputs to band structure calc
-        data['control'].update({'calculation': 'bands', 'restart_mode': 'restart', 'verbosity': 'high'})
+        data["control"].update(
+            {"calculation": "bands", "restart_mode": "restart", "verbosity": "high"}
+        )
 
         path = structure.cell.bandpath(npoints=200)
-        print(f'BandPath: {path}')
+        print(f"BandPath: {path}")
 
         calc: Calculator = Espresso(
-            input_data=data, pseudopotentials=pp, pseudo_dir=str(pp_dir), kpts=path, directory=str(calc_fold)
+            input_data=data,
+            pseudopotentials=pp,
+            pseudo_dir=str(pp_dir),
+            kpts=path,
+            directory=str(calc_fold),
         )
-        # calc.set(kpts=path, input_data=data)
-        # calc.calculate(atoms=structure)
-        structure.calc = calc
-        structure.get_potential_energy()
 
-        move(calc_fold / calc.template.inputname, outdir / f'{ID}.band.in')
-        move(calc_fold / calc.template.outputname, outdir / f'{ID}.band.out')
+        structure.calc = calc
+        e = structure.get_potential_energy()
+
+        move(calc_fold / calc.template.inputname, outdir / f"{ID}.band.in")
+        move(calc_fold / calc.template.outputname, outdir / f"{ID}.band.out")
 
         bs: BandStructure = get_band_structure(atoms=structure, calc=calc)
         bs._reference = fermi_level
 
         # bs = fix_fermi_level(bs, N_val_e).subtract_reference()
-        bs.write(outdir / f'bs_{ID}.json')
+        bs.write(outdir / f"bs_{ID}.json")
 
         # Subtraction of reference
         bs = bs.subtract_reference()
-        bs.plot(filename=outdir / f'bs_{ID}.png')
+        bs.plot(filename=outdir / f"bs_{ID}.png")
 
-        print(f'Band structure of {ID} is calculated.')
-        print('---------------------------')
+        print(f"Band structure of {ID} is calculated.")
+        print("---------------------------")
+
+
+def qe_band(args):
+    assert args.command == "qe", "This function is only for QE calculations"
+    print("---------------------------")
+    calc_type = args.subcommand
+    args = get_args(args)
+
+    run_qe_band(args)

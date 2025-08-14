@@ -2,37 +2,69 @@ import argparse
 
 import ase
 
-from common.dftb import add_dftb_arguments
-from common.dftb.band import dftb_band
-from common.dftb.eos import dftb_eos
-from common.dftb.neb import dftb_neb
-from common.dftb.opt import dftb_opt
-from common.dftb.scf import dftb_scf
-from common.mace import add_mace_arguments
-from common.mace.eos import mace_eos
-from common.mace.opt import mace_opt
-from common.mace.scf import mace_scf
-from common.qe import add_qe_arguments
-from common.qe.band import qe_band
-from common.qe.eos import qe_eos
-from common.qe.opt import qe_opt
-from common.qe.pdos import qe_pdos
-from common.qe.scf import qe_scf
 
-from common.vasp import add_vasp_arguments
-from common.vasp.scf import vasp_scf
-from common.vasp.band import vasp_band
-from common.vasp.pdos import vasp_pdos
+def _create_lazy_callable(calculator, subcommand):
+    """Create a lazy callable that imports and runs the appropriate calculator function."""
+    def lazy_wrapper(args):
+        if calculator == 'qe':
+            if subcommand == 'opt':
+                from common.qe.opt import qe_opt
+                return qe_opt(args)
+            elif subcommand == 'scf':
+                from common.qe.scf import qe_scf
+                return qe_scf(args)
+            elif subcommand == 'band':
+                from common.qe.band import qe_band
+                return qe_band(args)
+            elif subcommand == 'eos':
+                from common.qe.eos import qe_eos
+                return qe_eos(args)
+            elif subcommand == 'pdos':
+                from common.qe.pdos import qe_pdos
+                return qe_pdos(args)
 
-QE_CALC_TYPES = {'opt': qe_opt, 'scf': qe_scf, 'band': qe_band, 'eos': qe_eos, 'pdos': qe_pdos}
+        elif calculator == 'dftb':
+            if subcommand == 'opt':
+                from common.dftb.opt import dftb_opt
+                return dftb_opt(args)
+            elif subcommand == 'scf':
+                from common.dftb.scf import dftb_scf
+                return dftb_scf(args)
+            elif subcommand == 'band':
+                from common.dftb.band import dftb_band
+                return dftb_band(args)
+            elif subcommand == 'eos':
+                from common.dftb.eos import dftb_eos
+                return dftb_eos(args)
+            elif subcommand == 'neb':
+                from common.dftb.neb import dftb_neb
+                return dftb_neb(args)
+        
+        elif calculator == 'mace':
+            if subcommand == 'opt':
+                from common.mace.opt import mace_opt
+                return mace_opt(args)
+            elif subcommand == 'scf':
+                from common.mace.scf import mace_scf
+                return mace_scf(args)
+            elif subcommand == 'eos':
+                from common.mace.eos import mace_eos
+                return mace_eos(args)
 
-DFTB_CALC_TYPES = {'opt': dftb_opt, 'scf': dftb_scf, 'band': dftb_band, 'eos': dftb_eos, 'neb': dftb_neb}
+        elif calculator == 'vasp':
+            if subcommand == 'scf':
+                from common.vasp.scf import vasp_scf
+                return vasp_scf(args)
+            elif subcommand == 'band':
+                from common.vasp.band import vasp_band
+                return vasp_band(args)
+            elif subcommand == 'pdos':
+                from common.vasp.pdos import vasp_pdos
+                return vasp_pdos(args)
 
-MACE_CALC_TYPES = {'opt': mace_opt, 'scf': mace_scf, 'eos': mace_eos}
-
-VASP_CALC_TYPES = {'scf': vasp_scf,
-                   'band': vasp_band,
-                   'pdos': vasp_pdos}
+        raise ValueError(f"Unknown calculator '{calculator}' or subcommand '{subcommand}'")
+    
+    return lazy_wrapper
 
 
 def _precheck():
@@ -50,34 +82,42 @@ def main():
     # Create a subparser for the 'dftb' command
     parser_dftb = subparsers.add_parser('dftb')
     dftb_subparsers = parser_dftb.add_subparsers(dest='subcommand')
-    for calc_type, calc_func in DFTB_CALC_TYPES.items():
+    dftb_calc_types = ['opt', 'scf', 'band', 'eos', 'neb']
+    for calc_type in dftb_calc_types:
+        from common.dftb import add_dftb_arguments
         dftb_subparser = dftb_subparsers.add_parser(calc_type)
         dftb_subparser = add_dftb_arguments(dftb_subparser, calc_type)
-        dftb_subparser.set_defaults(func=calc_func)
+        dftb_subparser.set_defaults(func=_create_lazy_callable('dftb', calc_type))
 
     # Create a subparser for the 'mace' command
     parser_mace = subparsers.add_parser('mace')
     mace_subparsers = parser_mace.add_subparsers(dest='subcommand')
-    for calc_type, calc_func in MACE_CALC_TYPES.items():
+    mace_calc_types = ['opt', 'scf', 'eos']
+    for calc_type in mace_calc_types:
+        from common.mace import add_mace_arguments
         mace_subparser = mace_subparsers.add_parser(calc_type)
         mace_subparser = add_mace_arguments(mace_subparser, calc_type)
-        mace_subparser.set_defaults(func=calc_func)
+        mace_subparser.set_defaults(func=_create_lazy_callable('mace', calc_type))
 
     # Create a subparser for the 'qe' command
     parser_qe = subparsers.add_parser('qe')
     qe_subparsers = parser_qe.add_subparsers(dest='subcommand')
-    for calc_type, calc_func in QE_CALC_TYPES.items():
+    qe_calc_types = ['opt', 'scf', 'band', 'eos', 'pdos']
+    for calc_type in qe_calc_types:
+        from common.qe import add_qe_arguments
         qe_subparser = qe_subparsers.add_parser(calc_type)
         qe_subparser = add_qe_arguments(qe_subparser, calc_type)
-        qe_subparser.set_defaults(func=calc_func)
+        qe_subparser.set_defaults(func=_create_lazy_callable('qe', calc_type))
 
     # Create a subparser for the 'vasp' command
     parser_vasp = subparsers.add_parser('vasp')
     vasp_subparsers = parser_vasp.add_subparsers(dest='subcommand')
-    for calc_type, calc_func in VASP_CALC_TYPES.items():
+    vasp_calc_types = ['scf', 'band', 'pdos']
+    for calc_type in vasp_calc_types:
+        from common.vasp import add_vasp_arguments
         vasp_subparser = vasp_subparsers.add_parser(calc_type)
         vasp_subparser = add_vasp_arguments(vasp_subparser, calc_type)
-        vasp_subparser.set_defaults(func=calc_func)
+        vasp_subparser.set_defaults(func=_create_lazy_callable('vasp', calc_type))
 
     args = parser.parse_args()
     args.func(args)

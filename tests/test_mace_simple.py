@@ -5,6 +5,7 @@ Simplified unit tests for MACE calculator functionality.
 Tests core functionality with minimal mocking complexity.
 """
 
+import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
@@ -155,8 +156,6 @@ class TestMaceParameterValidation:
     @patch('common.mace.opt.get_args')
     def test_opt_fmax_validation(self, mock_get_args):
         """Test optimization validates fmax parameter."""
-        from common.mace.opt import run_mace_opt
-        
         # Mock get_args to return the invalid args directly without processing
         def mock_get_args_side_effect(args, calc_type):
             # Return args with invalid fmax to trigger validation
@@ -175,14 +174,16 @@ class TestMaceParameterValidation:
         
         mock_get_args.side_effect = mock_get_args_side_effect
         
-        with pytest.raises(AssertionError, match="fmax should be positive"):
-            run_mace_opt({}, 'opt')
+        # Mock the MACE calculator import
+        with patch.dict('sys.modules', {'mace': Mock(), 'mace.calculators': Mock()}):
+            from common.mace.opt import run_mace_opt
+            
+            with pytest.raises(AssertionError, match="fmax should be positive"):
+                run_mace_opt({}, 'opt')
     
     @patch('common.mace.opt.get_args')
     def test_opt_nsteps_validation(self, mock_get_args):
         """Test optimization validates nsteps parameter."""
-        from common.mace.opt import run_mace_opt
-        
         # Mock get_args to return the invalid args directly without processing
         def mock_get_args_side_effect(args, calc_type):
             # Return args with invalid nsteps to trigger validation
@@ -201,8 +202,12 @@ class TestMaceParameterValidation:
         
         mock_get_args.side_effect = mock_get_args_side_effect
         
-        with pytest.raises(AssertionError, match="nsteps should be positive"):
-            run_mace_opt({}, 'opt')
+        # Mock the MACE calculator import
+        with patch.dict('sys.modules', {'mace': Mock(), 'mace.calculators': Mock()}):
+            from common.mace.opt import run_mace_opt
+            
+            with pytest.raises(AssertionError, match="nsteps should be positive"):
+                run_mace_opt({}, 'opt')
 
 
 class TestMaceErrorHandling:

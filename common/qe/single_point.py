@@ -3,36 +3,38 @@
 import argparse
 import os
 from pathlib import Path
-from shutil import copyfile
 
-import numpy as np
-from ase.atoms import Atoms
 from ase.calculators.espresso import Espresso
-from ase.eos import EquationOfState
-from ase.io import read
 from ase.io.espresso import read_fortran_namelist
 from ase.io.trajectory import Trajectory, TrajectoryWriter
-from ase.units import kJ
 
 
 def copy_calc_files(origin, dest):
     origin.mkdir(parents=True, exist_ok=True)
     dest.mkdir(exist_ok=True, parents=True)
-    cp_command = f"cp -r {str(origin/'tmp')} {str(origin/'espresso*')} {dest}"
+    cp_command = f"cp -r {str(origin / 'tmp')} {str(origin / 'espresso*')} {dest}"
     os.system(cp_command)
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='EOS with QE for structure')
-    parser.add_argument('-i', dest='input', help='path to the input trajectory file')
-    parser.add_argument('-k', dest='options', help='path to the options file')
-    parser.add_argument('-pp', dest='pseudopotentials', help='dict of pseudopotentials for ASE')
-    parser.add_argument('-o', dest='output', help='path to the output file with trajectory')
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="EOS with QE for structure")
+    parser.add_argument("-i", dest="input", help="path to the input trajectory file")
+    parser.add_argument("-k", dest="options", help="path to the options file")
+    parser.add_argument(
+        "-pp", dest="pseudopotentials", help="dict of pseudopotentials for ASE"
+    )
+    parser.add_argument(
+        "-o", dest="output", help="path to the output file with trajectory"
+    )
     args = parser.parse_args()
 
     pp = eval(args.pseudopotentials)
-    assert Path(args.input).exists(), f'Seems like path to the input file is wrong.\n It is {Path(args.input)}'
-    assert Path(args.options).exists(), f'Seems like path to the options file is wrong.\n It is {Path(args.options)}'
+    assert Path(args.input).exists(), (
+        f"Seems like path to the input file is wrong.\n It is {Path(args.input)}"
+    )
+    assert Path(args.options).exists(), (
+        f"Seems like path to the options file is wrong.\n It is {Path(args.options)}"
+    )
 
     input = Path(args.input)
     calc_fold = input.parent
@@ -40,20 +42,25 @@ if __name__ == '__main__':
 
     with open(args.options) as fp:
         data, card_lines = read_fortran_namelist(fp)
-        if 'system' not in data:
-            raise KeyError('Required section &SYSTEM not found.')
+        if "system" not in data:
+            raise KeyError("Required section &SYSTEM not found.")
 
-    opt_calc = Espresso(input_data=data, pseudopotentials=pp, kspacing=KSPACING, directory=str(calc_fold))
+    opt_calc = Espresso(
+        input_data=data,
+        pseudopotentials=pp,
+        kspacing=KSPACING,
+        directory=str(calc_fold),
+    )
 
     # Read data from the inputs
     structures = Trajectory(input)
     # structures = [atoms] if atoms is list else atoms
 
-    traj = TrajectoryWriter(filename=traj_file, mode='w')
+    traj = TrajectoryWriter(filename=traj_file, mode="w")
 
     for atoms in structures:
         for s in list(set(atoms.get_chemical_symbols())):
-            assert s in pp.keys(), f'{s} is not presented in the pseudopotentials'
+            assert s in pp.keys(), f"{s} is not presented in the pseudopotentials"
 
         atoms.calc = opt_calc
 
@@ -71,5 +78,5 @@ if __name__ == '__main__':
         traj.write(atoms=atoms)
 
         # copy_calc_files(calc_fold, calc_fold/'opt')
-        print(f'Optimization of {input} is done.')
+        print(f"Optimization of {input} is done.")
     traj.close()

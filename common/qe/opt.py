@@ -1,7 +1,6 @@
 #!/usr/bin/python3
 
 from pathlib import Path
-from shutil import move
 
 from ase.calculators.espresso import Espresso
 from ase.filters import UnitCellFilter
@@ -12,32 +11,36 @@ from ase.optimize import BFGS
 from . import get_args
 
 
-def run_opt_qe(args: dict):
+def run_qe_opt(args: dict):
     # Name of the input file
-    name = args['name']
-    structures = args['structures']
+    name = args["name"]
+    structures = args["structures"]
 
-    pp = args['pseudopotentials']
-    pp_dir = args['pp_dir']
-    kspacing = args['kspacing']
-    fmax = args['fmax']
-    nsteps = args['nsteps']
+    pp = args["pseudopotentials"]
+    pp_dir = args["pp_dir"]
+    kspacing = args["kspacing"]
+    fmax = args["fmax"]
+    nsteps = args["nsteps"]
 
-    is_full_opt = args['full_opt']
+    is_full_opt = args["full_opt"]
 
-    outdir = Path(args['outdir'])
+    outdir = Path(args["outdir"])
     outdir.mkdir(parents=True, exist_ok=True)
     calc_fold = outdir
 
-    data = args['data']
-    data['control'].update({'outdir': './tmp', 'calculation': 'scf'})
+    data = args["data"]
+    data["control"].update({"outdir": "./tmp", "calculation": "scf"})
 
     opt_calc = Espresso(
-        input_data=data, pseudopotentials=pp, pseudo_dir=str(pp_dir), kspacing=kspacing, directory=str(calc_fold)
+        input_data=data,
+        pseudopotentials=pp,
+        pseudo_dir=str(pp_dir),
+        kspacing=kspacing,
+        directory=str(calc_fold),
     )
 
     for i, structure in enumerate(structures):
-        ID = f'{name}_{i}'
+        ID = f"{name}_{i}"
 
         structure.calc = opt_calc
 
@@ -60,27 +63,31 @@ def run_opt_qe(args: dict):
 
         opt = BFGS(
             opt_struct,
-            restart=str(outdir / 'optimization.pckl'),
-            trajectory=str(outdir / 'optimization.traj'),
-            logfile=str(outdir / 'optimization.log'),
+            restart=str(outdir / "optimization.pckl"),
+            trajectory=str(outdir / "optimization.traj"),
+            logfile=str(outdir / "optimization.log"),
         )
         opt.run(fmax=fmax, steps=nsteps)
 
         print(structure.get_potential_energy())
-        write_vasp(outdir / f'final.vasp', structure, sort=True, vasp5=True, direct=True)
-        with Trajectory(outdir / f'final.traj', 'w') as traj:
+        write_vasp(
+            outdir / "final.vasp", structure, sort=True, vasp5=True, direct=True
+        )
+        with Trajectory(outdir / "final.traj", "w") as traj:
             traj.write(structure)
 
         # move(calc_fold/opt_calc.template.inputname, outdir/f'{ID}.scf.in')
         # move(calc_fold/opt_calc.template.outputname, outdir/f'{ID}.scf.out')
 
         # copy_calc_files(objects_to_copy, outdir)
-        print(f'Optimization of {ID} is done.')
+        print(f"Optimization of {ID} is done.")
 
 
 def qe_opt(args):
-    assert args.command == 'qe', 'This function is only for QE calculations'
-    assert args.subcommand == 'opt', 'This function is only for optimization calculations'
+    assert args.command == "qe", "This function is only for QE calculations"
+    assert args.subcommand == "opt", (
+        "This function is only for optimization calculations"
+    )
     args: dict = get_args(args)
 
-    run_opt_qe(args)
+    run_qe_opt(args)

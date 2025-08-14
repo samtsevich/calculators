@@ -421,13 +421,16 @@ class TestValidationFunctions:
     
     def test_validate_mace_dependencies_missing_torch(self):
         """Test validate_mace_dependencies() with missing PyTorch."""
+        from common.mace import validate_mace_dependencies
+        
         with patch('builtins.__import__', side_effect=ImportError("No module named 'torch'")):
             with pytest.raises(ImportError, match='PyTorch is required'):
-                from common.mace import validate_mace_dependencies
                 validate_mace_dependencies()
     
     def test_validate_mace_dependencies_missing_mace(self):
         """Test validate_mace_dependencies() with missing mace-torch."""
+        from common.mace import validate_mace_dependencies
+        
         # Mock torch as available but mace as missing
         def mock_import(name, *args, **kwargs):
             if name == 'torch':
@@ -437,11 +440,11 @@ class TestValidationFunctions:
             elif 'mace.calculators' in name:
                 raise ImportError("No module named 'mace'")
             else:
-                return Mock()
+                # Use the real import for other modules
+                return __import__(name, *args, **kwargs)
         
         with patch('builtins.__import__', side_effect=mock_import):
             with pytest.raises(ImportError, match='mace-torch package is required'):
-                from common.mace import validate_mace_dependencies
                 validate_mace_dependencies()
     
     def test_check_device_availability_cpu(self):
