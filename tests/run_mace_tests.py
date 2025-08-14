@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Test runner script for MACE calculator tests.
+Test runner script for all calculator tests.
 
-This script runs the core MACE calculator tests to verify functionality.
+This script runs tests for MACE, QE, DFTB, and VASP calculators.
 """
 
 import subprocess
@@ -10,15 +10,18 @@ import sys
 
 
 def run_tests():
-    """Run the MACE calculator tests."""
-    print("Running MACE Calculator Unit Tests")
+    """Run all calculator tests."""
+    print("Running Calculator Unit Tests")
     print("=" * 50)
     
     # Test categories to run
     test_categories = [
-        ("Argument Parsing Tests", "tests/test_mace_arguments.py::TestAddMaceArguments"),
-        ("Core Functionality Tests", "tests/test_mace_simple.py"),
-        ("Basic Validation Tests", "tests/test_mace_arguments.py::TestGetArgs::test_get_args_missing_input_file"),
+        ("MACE Argument Parsing", "tests/test_mace_arguments.py::TestAddMaceArguments"),
+        ("MACE Core Functionality", "tests/test_mace_simple.py"),
+        ("QE Calculator Tests", "tests/test_qe_calculator.py::TestQEArgumentParsing"),
+        ("DFTB Calculator Tests", "tests/test_dftb_calculator.py::TestDFTBArgumentParsing"),
+        ("VASP Calculator Tests", "tests/test_vasp_calculator.py::TestVASPArgumentParsing"),
+        ("Cross-Calculator Tests", "tests/test_all_calculators.py::TestCalculatorArgumentParsing"),
     ]
     
     total_passed = 0
@@ -65,7 +68,7 @@ def run_tests():
     if total_failed > 0:
         print(f"❌ Test categories with failures: {total_failed}")
     else:
-        print("🎉 All test categories passed!")
+        print("🎉 All calculator test categories passed!")
     
     return total_failed == 0
 
