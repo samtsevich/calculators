@@ -10,7 +10,7 @@ from ase.io.vasp import write_vasp
 from ase.spectrum.band_structure import get_band_structure
 
 from .. import get_KPoints
-from . import get_args, get_calc_type_params, DFTB_OUTFILES_TO_COPY
+from . import get_args, get_calc_type_params, DFTB_OUTFILES_TO_COPY, has_tags
 
 N_KPOINTS = 200
 
@@ -71,7 +71,7 @@ def run_dftb_band(args: dict, calc_type: str):
         calc_fold / f"a_{name}.vasp", structure, sort=True, vasp5=True, direct=True
     )
 
-    scf_calc = Dftb(atoms=structure, directory=calc_fold, **params)
+    scf_calc = Dftb(atoms=structure, directory=calc_fold, **params, with_tags=has_tags(structure))
     structure.calc = scf_calc
     e = structure.get_potential_energy()
     fermi_level = scf_calc.get_fermi_level()
@@ -101,7 +101,7 @@ def run_dftb_band(args: dict, calc_type: str):
     # for simplicity, delete the PDOS parameters
     del params["Analysis_ProjectStates"]
 
-    band_calc = Dftb(atoms=structure, directory=calc_fold, **params)
+    band_calc = Dftb(atoms=structure, directory=calc_fold, **params, with_tags=has_tags(structure))
     band_calc.calculate(structure)
     bs = get_band_structure(atoms=structure, calc=band_calc)
     for filename in DFTB_OUTFILES_TO_COPY:

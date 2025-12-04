@@ -1,7 +1,7 @@
 from pathlib import Path
 
-import numpy as np
 from ase.io import read
+from ase.atoms import Atoms
 
 from .. import F_MAX, KSPACING, N_STEPS
 
@@ -20,6 +20,13 @@ E_MAX = 25
 SCC_TOLERANCE = 1.0e-6
 
 DFTB_OUTFILES_TO_COPY = ["dftb_in.hsd", "band.out", "geo_end.gen", "charges.bin"]
+
+
+def has_tags(atoms: Atoms) -> bool:
+    '''
+    Returns True if the atoms object has tags
+    '''
+    return set(atoms.get_tags()) != {0}
 
 
 def add_dftb_arguments(parser, calc_type):

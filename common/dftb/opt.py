@@ -8,7 +8,7 @@ from ase.io.vasp import write_vasp
 from ase.optimize import BFGS
 
 from .. import get_KPoints
-from . import get_args, get_calc_type_params
+from . import get_args, get_calc_type_params, has_tags
 
 
 def run_dftb_opt(args: dict, calc_type: str):
@@ -55,7 +55,7 @@ def run_dftb_opt(args: dict, calc_type: str):
         }
     )
 
-    structure.calc = Dftb(directory=calc_fold, **params)
+    structure.calc = Dftb(directory=calc_fold, **params, with_tags=has_tags(structure))
 
     # The object 'opt_struct' will be used for the optimization
     if is_full_opt:

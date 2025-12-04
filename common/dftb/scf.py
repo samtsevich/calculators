@@ -7,7 +7,7 @@ from ase.io.trajectory import Trajectory
 from ase.io.vasp import write_vasp
 
 from .. import get_KPoints
-from . import get_args, get_calc_type_params
+from . import get_args, get_calc_type_params, has_tags
 
 
 def run_dftb_scf(args: dict, calc_type: str):
@@ -43,7 +43,7 @@ def run_dftb_scf(args: dict, calc_type: str):
         }
     )
 
-    structure.calc = Dftb(directory=calc_fold, **params)
+    structure.calc = Dftb(directory=calc_fold, **params, with_tags=has_tags(structure))
     e = structure.get_potential_energy()
 
     write_vasp(outdir / "final.vasp", structure, sort=True, vasp5=True, direct=True)
